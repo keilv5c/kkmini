@@ -69,6 +69,9 @@ ok('工程里有部署目标设置', targets.length > 0, targets.length + ' 处'
 ok('所有部署目标都一致', new Set(targets).size === 1, [...new Set(targets)].join(', '));
 ok('工程部署目标与 Podfile 一致', targets.length > 0 && parseFloat(targets[0]) === podPlatform,
   `pbxproj=${targets[0]} podfile=${podPlatform}`);
+ok('关闭了脚本沙箱（Xcode 15+ 必需，否则 CocoaPods 的 [CP] 脚本阶段会失败）',
+  /ENABLE_USER_SCRIPT_SANDBOXING = NO;/.test(pbx),
+  (pbx.match(/ENABLE_USER_SCRIPT_SANDBOXING = NO;/g) || []).length + ' 处');
 
 /* ------------------------------------------------ 3. 扫码插件的关键配置 */
 section('3. 其余 iOS 关键配置');
