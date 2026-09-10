@@ -1,0 +1,226 @@
+# ============================================================================
+#  Build iOS IPA (signed with YOUR certificate) —— 用你自己的证书直接出可安装 IPA
+# ----------------------------------------------------------------------------
+#  与另一个工作流的区别：
+#    ios-unsigned-ipa.yml : 出未签名 IPA，需要你本地再签一次
+#    本文件              : 用你的 p12 + mobileprovision 在 CI 里签名，下载即可安装
+#
+#  一次性准备：在 GitHub 仓库 Settings → Secrets and variables → Actions 里加 4 个 secret
+#    BUILD_CERTIFICATE_BASE64       你的 .p12（base64 后的文本）
+#    P12_PASSWORD                   p12 的密码
+#    BUILD_PROVISION_PROFILE_BASE64 你的 .mobileprovision（base64 后的文本）
+#    KEYCHAIN_PASSWORD              随便一串临时密码（CI 里建临时钥匙串用）
+#
+#  Windows 上生成 base64 的命令（PowerShell）：
+#    [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\cert.p12")) | Set-Clipboard
+#    [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\profile.mobileprovision")) | Set-Clipboard
+#
+#  安全提示：证书是敏感信息。建议用**私有**仓库，用完可以把这 4 个 secret 删掉；
+#           公开仓库里 fork/PR 拿不到 secret，但仍建议私有。
+#
+#  签名前体检（强烈建议先在本机跑一次，避免白等 20 分钟）：
+#    node tools/inspect-mobileprovision.js profile.mobileprovision --ipa app.ipa --udid 设备UDID
+# ============================================================================
+name: Build iOS IPA (signed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: 'Bundle ID（必须与证书的 App ID 一致；留空则用工程里的 com.mdz.webrtcmp）'
+        required: false
+        default: ''
+      method:
+        description: '导出方式：ad-hoc（注册设备）/ development / enterprise（企业证书）/ app-store'
+        required: true
+        default: 'ad-hoc'
+      identity:
+        description: '签名身份，留空自动探测（如 "Apple Distribution" / "iPhone Distribution" / "Apple Development"）'
+        required: false
+        default: ''
+
+jobs:
+  build-signed-ipa:
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # ---------------------------------------------------------------- 证书
+      - name: 导入证书与描述文件
+        env:
+          CERT_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -e
+          if [ -z "$CERT_BASE64" ] || [ -z "$PROFILE_BASE64" ]; then
+            echo "::error::缺少 secret：请在仓库 Settings → Secrets 里配置 BUILD_CERTIFICATE_BASE64 / P12_PASSWORD / BUILD_PROVISION_PROFILE_BASE64 / KEYCHAIN_PASSWORD"
+            exit 1
+          fi
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          echo -n "$CERT_BASE64" | base64 --decode > "$CERT_PATH"
+          echo -n "$PROFILE_BASE64" | base64 --decode > "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" >/dev/null
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+          echo "PROFILE_PATH=$PROFILE_PATH" >> $GITHUB_ENV
+
+          echo "--- 钥匙串里的签名身份 ---"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: 读取描述文件信息（App ID / Team / 名称）
+        run: |
+          set -e
+          security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$RUNNER_TEMP/profile.plist")
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" "$RUNNER_TEMP/profile.plist")
+          APP_ID=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$RUNNER_TEMP/profile.plist")
+          CERT_BUNDLE_ID="${APP_ID#*.}"
+          EXPIRY=$(/usr/libexec/PlistBuddy -c "Print :ExpirationDate" "$RUNNER_TEMP/profile.plist")
+          echo "描述文件名称 : $PROFILE_NAME"
+          echo "Team ID      : $TEAM_ID"
+          echo "App ID       : $APP_ID"
+          echo "Bundle ID    : $CERT_BUNDLE_ID"
+          echo "过期时间     : $EXPIRY"
+          {
+            echo "PROFILE_NAME=$PROFILE_NAME"
+            echo "TEAM_ID=$TEAM_ID"
+            echo "CERT_BUNDLE_ID=$CERT_BUNDLE_ID"
+          } >> $GITHUB_ENV
+
+      - name: 决定最终使用的 Bundle ID
+        run: |
+          INPUT_ID="${{ github.event.inputs.bundle_id }}"
+          FINAL_ID="${INPUT_ID:-$CERT_BUNDLE_ID}"
+          if [ "$FINAL_ID" != "$CERT_BUNDLE_ID" ]; then
+            echo "::error::你填的 bundle_id ($FINAL_ID) 与证书里的 Bundle ID ($CERT_BUNDLE_ID) 不一致，签名必定失败。"
+            echo "::error::请把 bundle_id 改成 $CERT_BUNDLE_ID，或改用匹配该 Bundle ID 的证书。"
+            exit 1
+          fi
+          echo "BUNDLE_ID=$FINAL_ID" >> $GITHUB_ENV
+          echo "使用 Bundle ID: $FINAL_ID"
+
+      # ------------------------------------------------------------- 构建准备
+      - name: 安装依赖
+        run: |
+          npm ci --omit=dev
+          npm install --no-save typescript
+
+      - name: 确保 CocoaPods
+        run: |
+          command -v pod >/dev/null 2>&1 || sudo gem install cocoapods --no-document
+          pod --version
+
+      - name: 同步 web 资源
+        run: npx cap sync ios
+
+      - name: pod install
+        working-directory: ios/App
+        run: pod install
+
+      # ---------------------------------------------------------------- 签名
+      - name: 探测签名身份
+        run: |
+          IDENTITY="${{ github.event.inputs.identity }}"
+          if [ -z "$IDENTITY" ]; then
+            IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+              | sed -n 's/.*"\(.*\)".*/\1/p' | head -n 1)
+          fi
+          if [ -z "$IDENTITY" ]; then echo "::error::钥匙串里没有可用的签名身份"; exit 1; fi
+          echo "SIGN_IDENTITY=$IDENTITY" >> $GITHUB_ENV
+          echo "使用签名身份: $IDENTITY"
+
+      - name: Archive
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" \
+            archive | tail -n 60
+
+      - name: 导出 IPA
+        run: |
+          set -e
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>${{ github.event.inputs.method }}</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>stripSwiftSymbols</key><true/>
+            <key>compileBitcode</key><false/>
+            <key>provisioningProfiles</key><dict>
+              <key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string>
+            </dict>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/ipa" \
+            -allowProvisioningUpdates | tail -n 40
+          ls -lh "$RUNNER_TEMP/ipa"
+
+      - name: 校验签名与包内权限
+        run: |
+          set -e
+          IPA=$(ls "$RUNNER_TEMP"/ipa/*.ipa | head -n 1)
+          echo "IPA: $IPA"
+          mkdir -p "$RUNNER_TEMP/check" && cd "$RUNNER_TEMP/check"
+          unzip -q "$IPA"
+          APP="Payload/App.app"
+          echo "--- 签名信息 ---"
+          codesign -dv --verbose=4 "$APP" 2>&1 | sed -n '1,12p'
+          echo "--- 嵌入的描述文件 ---"
+          security cms -D -i "$APP/embedded.mobileprovision" > embedded.plist
+          /usr/libexec/PlistBuddy -c "Print :Name" embedded.plist
+          /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" embedded.plist
+          echo "--- 权限键 ---"
+          for k in NSCameraUsageDescription NSLocalNetworkUsageDescription NSBonjourServices UIRequiresFullScreen; do
+            /usr/libexec/PlistBuddy -c "Print :$k" "$APP/Info.plist" >/dev/null 2>&1 && echo "  OK   $k" || echo "  ::warning::缺少 $k"
+          done
+          echo "--- Bundle ID ---"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          echo "--- web 代码 ---"
+          ls "$APP/public" | grep -E 'mdz_|lan_bridge' || true
+          cp "$IPA" "$RUNNER_TEMP/Minidayz-signed.ipa"
+
+      - name: Upload signed IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: minidayz-signed-ipa
+          path: ${{ runner.temp }}/Minidayz-signed.ipa
+          if-no-files-found: error
+          retention-days: 30

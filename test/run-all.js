@@ -12,7 +12,8 @@ const suites = [
   ['mdz_ui（两个 jsdom 实例走完整 UI 流程）', 'mdz_ui.test.js'],
   ['mdz_selftest（自测页本身：点按钮读页面 PASS/FAIL）', 'mdz_selftest.test.js'],
   ['mdz_page（按 index.html 真实脚本顺序做页面集成检查）', 'mdz_page.test.js'],
-  ['mdz_scan（App 内扫码三级链路：WebView -> 原生捆绑模型 -> 文本）', 'mdz_scan.test.js']
+  ['mdz_scan（App 内扫码三级链路：WebView -> 原生捆绑模型 -> 文本）', 'mdz_scan.test.js'],
+  ['tool_mobileprovision（证书体检：Bundle ID / 类型 / 有效期 / UDID）', 'tool_mobileprovision.test.js']
 ];
 
 let failed = 0;
