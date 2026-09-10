@@ -23,6 +23,13 @@ for (const [title, file] of suites) {
   if (r.status !== 0) failed++;
 }
 
+// 附加检查：把工作流里的每个 run: 块交给 bash -n 做语法检查（没装 bash 就自动跳过）
+console.log('\n########## 工作流 shell 语法检查（bash -n） ##########');
+{
+  const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'tools', 'check-workflow-shell.js')], { stdio: 'inherit' });
+  if (r.status !== 0) failed++;
+}
+
 console.log('\n==================================================');
 console.log(failed === 0 ? '全部测试通过 ✅' : (failed + ' 个测试套件失败 ❌'));
 process.exit(failed === 0 ? 0 : 1);

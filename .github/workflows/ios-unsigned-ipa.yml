@@ -1,21 +1,18 @@
 # ============================================================================
 #  Build iOS IPA (unsigned) —— 用 GitHub 的 macOS 机器编译出未签名 IPA
 # ----------------------------------------------------------------------------
-#  用途：你没有 Mac 时拿到 .ipa，再在 Windows 上用 Sideloadly/AltStore
-#        配合自己的 Apple ID 签名安装（免费账号 7 天有效，付费账号 1 年）。
+#  用途：你没有 Mac 时拿到 .ipa，再在 Windows 上用 Sideloadly 或自己的证书签名安装。
 #
 #  用法：推到 GitHub → Actions → 本工作流 → Run workflow
-#        （可选填 bundle_id：免费 Apple ID 必须用全局唯一的 Bundle ID，
-#          不确定就填 com.你的名字.mdzmp，避免和别人的冲突）
+#        （可选填 bundle_id：免费 Apple ID 必须用全局唯一的 Bundle ID）
 #
-#  几个已经踩过的 CI 坑，都已在本文件里处理：
-#    1. Capacitor 模板没有"共享 scheme" → 仓库里已补
-#       ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme
-#    2. capacitor.config.ts 需要 TypeScript，但 devDependencies 里的
-#       node-datachannel 是原生模块、在 CI 上装它既慢又可能失败
-#       → 只装生产依赖 + 单独装 typescript
-#    3. macOS runner 上 CocoaPods 缺失/过旧 → 缺失时自动 gem install
-#    4. 未签名归档：CODE_SIGNING_ALLOWED=NO（连同 Pods 一起生效）
+#  ── 这份是"分步 + 会自检"的版本，专治"某一步 2 秒就红"这类问题 ──
+#   1. 开头就打印 commit SHA 和 ios/ 目录清单 —— 一眼看出推上去的东西全不全
+#   2. 自检 Podfile / Xcode 工程 / 共享 scheme / web/index.html / capacitor.config.ts
+#   3. cap sync 拆成 cap copy（只拷资源）+ 独立 pod install，
+#      这样 CocoaPods 的问题会出现在它自己的步骤里、带完整日志
+#   4. pod install 失败会自动 pod repo update 重试一次
+#   5. 任何一步失败都会打印诊断（版本、目录树、Podfile）
 # ============================================================================
 name: Build iOS IPA (unsigned)
 
@@ -23,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       bundle_id:
-        description: 'Bundle ID（留空则用工程里的 com.mdz.webrtcmp；免费 Apple ID 请填一个你独有的，如 com.yourname.mdzmp）'
+        description: 'Bundle ID（留空用工程里的 com.mdz.webrtcmp；免费 Apple ID 请填一个你独有的，如 com.yourname.mdzmp）'
         required: false
         default: ''
   push:
@@ -43,6 +40,38 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ---------------------------------------------------- 自检：先确认"推全了"
+      - name: 自检：这次构建的是哪个提交、仓库里有什么
+        run: |
+          echo "================ 本次构建的提交 ================"
+          git log -1 --oneline
+          git rev-parse HEAD
+          echo ""
+          echo "================ ios/ 目录 ================"
+          ls -la ios || { echo "::error::ios/ 目录不存在 —— 推上来的内容不完整"; exit 1; }
+          ls -la ios/App || true
+          echo ""
+          echo "================ 关键文件自检 ================"
+          missing=0
+          for f in ios/App/Podfile \
+                   ios/App/App.xcodeproj/project.pbxproj \
+                   ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme \
+                   ios/App/App/Info.plist \
+                   web/index.html \
+                   web/mdz_p2p.js \
+                   capacitor.config.ts \
+                   package-lock.json ; do
+            if [ -f "$f" ]; then echo "  OK   $f"; else echo "  ::error::缺失 $f"; missing=1; fi
+          done
+          if [ "$missing" != "0" ]; then
+            echo "::error::仓库内容不完整。请确认是用 git push 推的（不是网页上传），且已 push 到最新提交。"
+            exit 1
+          fi
+          echo "  web/ 文件数 : $(find web -type f | wc -l)"
+          echo "  ios/ 文件数 : $(find ios -type f | wc -l)"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -55,6 +84,7 @@ jobs:
           node -v
           npm -v
           xcodebuild -version
+          swift --version || true
           (pod --version || echo "CocoaPods 未安装")
 
       - name: Ensure CocoaPods
@@ -69,6 +99,8 @@ jobs:
         run: |
           npm ci --omit=dev
           npm install --no-save typescript
+          echo "typescript    : $(test -d node_modules/typescript && echo OK || echo 缺失)"
+          echo "@capacitor/ios: $(test -d node_modules/@capacitor/ios && echo OK || echo 缺失)"
 
       - name: 应用自定义 Bundle ID（可选）
         if: ${{ github.event.inputs.bundle_id != '' }}
@@ -78,18 +110,61 @@ jobs:
           /usr/bin/sed -i '' "s/com\.mdz\.webrtcmp/$NEW_ID/g" ios/App/App.xcodeproj/project.pbxproj
           /usr/bin/sed -i '' "s/com\.mdz\.webrtcmp/$NEW_ID/g" capacitor.config.ts
           grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/App/App.xcodeproj/project.pbxproj
+          grep -n "appId" capacitor.config.ts
 
-      - name: Sync web assets into iOS project
-        run: npx cap sync ios
+      # ------------------------------------------- 只拷 web 资源（不碰 CocoaPods）
+      - name: 拷贝 web 资源到 iOS 工程（cap copy）
+        run: |
+          set -o pipefail
+          npx cap copy ios || {
+            echo "::group::cap copy 失败诊断"
+            echo "--- capacitor.config.ts ---"; cat capacitor.config.ts
+            echo "--- ios/ 树 ---"; find ios -maxdepth 3 | head -n 40
+            echo "--- node_modules/@capacitor ---"; ls node_modules/@capacitor
+            echo "::endgroup::"
+            exit 1
+          }
+          echo "--- 确认资源已拷入 ---"
+          ls ios/App/App/public | head -n 12
+          test -f ios/App/App/public/mdz_ui.js || { echo "::error::web 资源没拷进去"; exit 1; }
 
-      - name: Pod install
+      # ------------------------- 原生依赖更新（会重新生成 Podfile 并跑 pod install）
+      # 单独成步：实测 `cap sync` 会**重新生成 Podfile**，所以这步不能省，
+      # 但拆开后 CocoaPods 的报错就只会出现在这一步，日志清清楚楚。
+      - name: 更新 iOS 原生依赖（cap update）
+        run: |
+          set -o pipefail
+          npx cap update ios || {
+            echo "::group::cap update 失败诊断"
+            echo "--- Podfile ---"; cat ios/App/Podfile
+            echo "--- pod 版本 ---"; pod --version || true
+            echo "--- 可用 Xcode ---"; xcodebuild -version || true
+            echo "::endgroup::"
+            exit 1
+          }
+
+      # ------------------------------------------------------- pod install 独立成步
+      - name: pod install（失败会自动 repo update 重试）
         working-directory: ios/App
-        run: pod install
+        run: |
+          set -o pipefail
+          echo "--- Podfile ---"; cat Podfile
+          echo "--- 开始 pod install ---"
+          if ! pod install 2>&1 | tail -n 120; then
+            echo "::warning::第一次 pod install 失败，执行 pod repo update 后重试"
+            pod repo update || true
+            pod install
+          fi
+          echo "--- 结果 ---"
+          ls -la
+          test -f Podfile.lock && echo "Podfile.lock 已生成 ✅"
 
       - name: 列出 scheme/配置（便于日志定位）
         working-directory: ios/App
         run: |
-          xcodebuild -workspace App.xcworkspace -list
+          xcodebuild -workspace App.xcworkspace -list || {
+            echo "::error::工作区/scheme 有问题"; ls -la; exit 1;
+          }
 
       - name: Archive（未签名）
         working-directory: ios/App
