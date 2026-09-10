@@ -355,7 +355,43 @@ adb install -r "D:\game_hack\minidayz\Minidayz-WebRTC\dist\Minidayz-WebRTC-debug
 
 ---
 
-## 八、原版未被改动的证明
+## 八、iOS / IPA
+
+**`.ipa` 只能在 macOS + Xcode 上编译签名**（Apple 工具链只有 macOS 版），Windows 上无法产出二进制。
+但仓库里已经准备好除"按编译键"以外的全部内容，完整步骤见 **`tools/build-ios.md`**：
+
+| 项 | 位置 | 说明 |
+|---|---|---|
+| iOS 工程 | `ios/App/App.xcodeproj` | 用 **CocoaPods** 生成（扫码插件只有 podspec，SPM 会跳过它） |
+| 依赖清单 | `ios/App/Podfile` | 含 Capacitor / MlkitBarcodeScanning / Camera / StatusBar，`platform :ios, '15.0'` |
+| 权限与显示 | `ios/App/App/Info.plist` | 相机、**本地网络**、Bonjour、横屏锁定、全屏 |
+| 云构建 | `.github/workflows/ios-unsigned-ipa.yml` | GitHub 的 macOS 机器产出未签名 IPA |
+
+三条路线：
+
+```bat
+:: 有 Mac
+npm run sync:ios      :: cap sync ios（顺带 pod install）
+npm run open:ios      :: 打开 Xcode，选真机 Run
+:: 出 IPA：xcodebuild archive + -exportArchive（详见 tools/build-ios.md）
+```
+
+- **没有 Mac**：推到 GitHub → Actions 跑 `Build iOS IPA (unsigned)`（10~20 分钟）→ 下载未签名 IPA →
+  在 **Windows** 上用 [Sideloadly](https://sideloadly.io/) + 自己的 Apple ID 签名安装
+  （免费账号 7 天有效、最多 3 个 App；付费账号 1 年）
+- **要上架 / TestFlight**：Codemagic、Ionic Appflow 等云构建，配 Apple 开发者账号后可自动签名
+
+iOS 上与安卓不同的坑（已处理，务必注意）：
+
+1. **`NSLocalNetworkUsageDescription` 必须有** —— iOS 14+ 做局域网直连会弹「允许访问本地网络」，
+   没这个键连弹框都不会出现，WebRTC 直接连不上。
+2. 必须在**真机**上测：模拟器没有摄像头，扫码测不了，WebRTC 也不可靠。
+3. 免费 Apple ID 的 Bundle ID 必须全局唯一，`com.mdz.webtcmp` 可能被占用，改一个自己的。
+4. iOS 侧的扫码同样走**原生 MLKit `startScan`**（CocoaPods 集成），逻辑与安卓共用一套 `mdz_ui.js`。
+
+---
+
+## 九、原版未被改动的证明
 
 ```powershell
 # 重新计算原版哈希并与清单比对

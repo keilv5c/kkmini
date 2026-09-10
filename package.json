@@ -10,7 +10,11 @@
     "test:core": "node test/mdz_core.test.js",
     "test:rtc": "node test/mdz_rtc.test.js",
     "test:ui": "node test/mdz_ui.test.js",
-    "sync": "cap sync android"
+    "sync": "cap sync android",
+    "sync:android": "cap sync android",
+    "sync:ios": "cap sync ios",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android"
   },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^8.2.1",
