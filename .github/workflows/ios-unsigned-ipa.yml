@@ -138,18 +138,45 @@ jobs:
           ls ios/App/App/public | head -n 12
           test -f ios/App/App/public/mdz_ui.js || { echo "::error::web 资源没拷进去"; exit 1; }
 
-      # ------------------------- 原生依赖更新（会重新生成 Podfile 并跑 pod install）
-      # 单独成步：实测 `cap sync` 会**重新生成 Podfile**，所以这步不能省，
-      # 但拆开后 CocoaPods 的报错就只会出现在这一步，日志清清楚楚。
+      # ------------------------- 原生依赖更新（重写 Podfile 里的 pods 块并跑 pod install）
+      # 单独成步：这步不能省（新增插件的 pod 靠它写进 Podfile），
+      # 拆开后 CocoaPods 的报错就只会出现在这一步，日志清清楚楚。
+      #
+      # ⚠️ 血的教训（本工作流连红三次、每次都"2 秒红 + 零下载日志"的原因）：
+      #    CLI 用正则 /(触发字符)[\s\S]+?(\nend)/ 定位要重写的块，
+      #    当时 Podfile 的注释里恰好写了那串触发字符，匹配起点就前移了，
+      #    把 platform / use_frameworks! / install! / 真正的定义行一起吃掉 ——
+      #    pod install 在 1 秒内报 undefined method `capacitor_pods'，连一个 pod 都没开始下。
+      #    修法：platform :ios,'15.5' 放 Podfile 第一行 + 注释里不写那串字符。
+      #    下面那步校验是必须的，别再删掉它。
       - name: 更新 iOS 原生依赖（cap update）
         run: |
           set -o pipefail
-          npx cap update ios || {
-            echo "::group::cap update 失败诊断"
-            echo "--- Podfile ---"; cat ios/App/Podfile
-            echo "--- pod 版本 ---"; pod --version || true
-            echo "--- 可用 Xcode ---"; xcodebuild -version || true
-            echo "::endgroup::"
+          # cap update 内部会真跑一次 pod install（拉 CocoaPods CDN 规格 + 下载 MLKit 二进制），
+          # 偶发超时会把整个作业误杀，所以失败时先 pod repo update 再自动重试一次。
+          if ! npx cap update ios; then
+            echo "::warning::cap update 第一次失败（常见原因：CocoaPods 拉 CDN 规格超时），pod repo update 后重试一次"
+            pod repo update || true
+            npx cap update ios || {
+              echo "::group::cap update 失败诊断"
+              echo "--- Podfile ---"; cat ios/App/Podfile
+              echo "--- pod 版本 ---"; pod --version || true
+              echo "--- 可用 Xcode ---"; xcodebuild -version || true
+              echo "--- ios/App 目录 ---"; ls -la ios/App || true
+              echo "::endgroup::"
+              exit 1
+            }
+          fi
+
+      # 必须紧跟在上一步后面：cap update 会按正则重写 Podfile，
+      # 一旦被改坏，pod install 只会给一个"undefined method"的谜语报错。
+      - name: 校验 Podfile 没被 cap update 改坏
+        run: |
+          node tools/check-podfile.js || {
+            echo "::error::Podfile 被 Capacitor CLI 的正则改坏了（platform / use_frameworks! / 定义块被吃掉）"
+            echo "::error::修法：platform :ios,'15.5' 必须留在 Podfile 第一行，注释里不要出现那串触发字符"
+            echo "--- Podfile 现状 ---"
+            cat ios/App/Podfile
             exit 1
           }
 

@@ -1,12 +1,31 @@
+platform :ios, '15.5'
+
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-# ⚠️ 必须是 15.5，不能是 Capacitor 默认的 15.0！
-# 原因：扫码插件依赖 GoogleMLKit/BarcodeScanning ~> 8.0.0，而整条 MLKit 链
-# （GoogleMLKit / MLKitBarcodeScanning / MLKitCommon）的 podspec 都写着 platform :ios, '15.5'。
-# 写 15.0 的话 CocoaPods 在**解析阶段**就找不到可用版本，pod install 秒失败
-# （CI 上表现为 cap sync 那一步 2 秒就红，且没有任何 pod 下载日志）。
-# 实测：cap sync/update **不会**重写这一行（CLI 只定点替换 def capacitor_pods 块和 require_relative），所以在这里改是可靠的。
-platform :ios, '15.5'
+# ============================================================================
+#  ⚠️ 为什么 platform 那行必须写在文件第一行、且必须是 15.5
+# ----------------------------------------------------------------------------
+#  1) 版本原因：扫码插件依赖 GoogleMLKit/BarcodeScanning ~> 8.0.0，整条 MLKit 链
+#     （GoogleMLKit / MLKitBarcodeScanning / MLKitCommon）的 podspec 都写着 iOS 15.5。
+#     写 Capacitor 默认的 15.0 时，CocoaPods 在**解析阶段**就找不到可用版本，
+#     pod install 秒失败（CI 上表现为 2 秒红、且没有任何 pod 下载日志）。
+#
+#  2) 位置原因（这个坑真踩过！）：Capacitor CLI 会用正则
+#       /(d-e-f 加一个空格再加 capacitor_pods)[\s\S]+?(\nend)/
+#     来定位本文件里要重写的那个代码块（见 @capacitor/cli/dist/ios/update.js）。
+#     注意上面那串我故意拆开写 —— 因为只要本文件的注释里**先出现**那串完整字符，
+#     匹配起点就会提前到注释处，于是 platform / use_frameworks! / install!
+#     连同真正的定义行会被一起删掉，而 target 里调用的 capacitor_pods
+#     就变成"未定义方法"，cap sync / cap update 会在 1 秒内报错：
+#       [!] Invalid `Podfile` file: undefined method `capacitor_pods'
+#     把 platform 放在第一行，就算以后有人再犯，至少版本要求不会丢。
+#
+#  3) 兜底：tools/check-podfile.js 会在本地和 CI 上用 CLI 的真实正则"重放"一遍，
+#     test/ios_config.test.js 也有对应回归测试。改本文件后请跑 npm test。
+#
+#  ❌ 千万不要在本文件（含注释）里写出那串完整触发字符！
+# ============================================================================
+
 use_frameworks!
 
 # workaround to avoid Xcode caching of Pods that requires

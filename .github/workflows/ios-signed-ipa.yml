@@ -138,6 +138,18 @@ jobs:
       - name: 同步 web 资源
         run: npx cap sync ios
 
+      # cap sync 内部同样会按正则重写 Podfile —— 被改坏时报错是谜语级的
+      # （undefined method `capacitor_pods'，1 秒内失败且没有任何 pod 下载日志），
+      # 所以这里必须校验一次。详见 tools/check-podfile.js 里的说明。
+      - name: 校验 Podfile 没被 cap sync 改坏
+        run: |
+          node tools/check-podfile.js || {
+            echo "::error::Podfile 被 Capacitor CLI 的正则改坏了（platform / use_frameworks! / 定义块被吃掉）"
+            echo "--- Podfile 现状 ---"
+            cat ios/App/Podfile
+            exit 1
+          }
+
       - name: pod install
         working-directory: ios/App
         run: pod install

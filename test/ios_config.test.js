@@ -87,6 +87,42 @@ ok('共享 scheme 已提交（CI 必需）',
 ok('workspace 描述文件已提交',
   fs.existsSync(path.join(ROOT, 'ios', 'App', 'App.xcworkspace', 'contents.xcworkspacedata')));
 
+/* ------------- 4. Podfile 不会被 cap sync/update 的正则改坏（真实事故回归） */
+section('4. Podfile 与 Capacitor CLI 正则的兼容性（CI 连红三次的那次事故）');
+{
+  const podTool = require('../tools/check-podfile.js');
+  ok('检查工具 tools/check-podfile.js 可复用', !!podTool && typeof podTool.inspect === 'function');
+
+  const now = podTool.inspect(podfileRaw);
+  ok('当前 Podfile 体检通过（platform 首行 / 指令齐全 / 块闭合）', now.length === 0,
+    now.join(' | ') || '无问题');
+
+  const rep = podTool.replay(podfileRaw);
+  ok('重放 cap sync/update 后 Podfile 逐字节不变', rep.ok && rep.text === podfileRaw);
+  const after = podTool.inspect(rep.text);
+  ok('重放后体检仍通过', after.length === 0, after.join(' | ') || '无问题');
+
+  // 反向自检：把历史上那句注释再埋回去，必须能复现"定义行被吃掉"
+  const poisoned = podfileRaw.replace(/^platform/m,
+    '# CLI 只定点替换 ' + podTool.TRIGGER + ' 块和 require_relative\nplatform');
+  const mangled = podTool.replay(poisoned).text;
+  const mp = podTool.inspect(mangled);
+  ok('注释里出现触发字符时会被检出', mp.length > 0, mp.length + ' 个问题');
+  ok('埋雷后定义行消失（正是 undefined method 的成因）',
+    !/^\s*def\s+capacitor_pods\s*$/m.test(mangled));
+  ok('埋雷后 platform 行被吃掉', mangled.indexOf("platform :ios, '15.5'") < 0);
+
+  // 上游没换正则，上面的"重放"才有意义
+  const cliUpdate = path.join(ROOT, 'node_modules', '@capacitor', 'cli', 'dist', 'ios', 'update.js');
+  if (fs.existsSync(cliUpdate)) {
+    const cli = fs.readFileSync(cliUpdate, 'utf8');
+    ok('@capacitor/cli 仍用那两个正则重写 Podfile（上游未变）',
+      cli.indexOf(podTool.CLI_SRC_PODS) >= 0 && cli.indexOf(podTool.CLI_SRC_REQ) >= 0);
+  } else {
+    console.log('  （node_modules 未安装，跳过 CLI 上游正则确认）');
+  }
+}
+
 console.log('\n--------------------------------------------------');
 console.log(`结果: ${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);
