@@ -119,9 +119,10 @@ try {
   if ($idx) {
     $sr = New-Object System.IO.StreamReader($idx.Open())
     $html = $sr.ReadToEnd(); $sr.Close()
-    $hasBuildTag = $html -match 'mdz-webrtc-web-1'
+    $buildTag = [regex]::Match($html, "MDZ_BUILD = '([^']+)'").Groups[1].Value
+$hasBuildTag = ($buildTag -ne '')
   }
-  Say ("    index.html 内含构建标记 mdz-webrtc-web-1: " + $(if ($hasBuildTag) { '是' } else { '否!' }))
+  Say ("    index.html 构建标记: " + $(if ($hasBuildTag) { $buildTag } else { '找不到!（web 资源可能是旧的）' }))
 } finally { $zip.Dispose() }
 
 Say ''
