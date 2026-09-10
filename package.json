@@ -1,0 +1,33 @@
+{
+  "name": "minidayz-webrtc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mini DAYZ 双模式零服务器 WebRTC 联机改造（模式A 二维码 / 模式B 文本SDP）；web/ 内是游戏本体副本，lan_bridge.js 与 mp_*.js 保持与原版逐字节一致",
+  "scripts": {
+    "web": "python -m http.server 8765 --directory web",
+    "vendor": "node tools/make-vendor.js",
+    "test": "node test/run-all.js",
+    "test:core": "node test/mdz_core.test.js",
+    "test:rtc": "node test/mdz_rtc.test.js",
+    "test:ui": "node test/mdz_ui.test.js",
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^8.2.1",
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
+    "@capacitor/status-bar": "^8.0.3",
+    "html5-qrcode": "^2.3.8",
+    "pako": "^2.1.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.0.1",
+    "node-datachannel": "^0.27.0",
+    "typescript": "^7.0.2"
+  }
+}

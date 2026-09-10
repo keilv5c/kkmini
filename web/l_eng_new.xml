@@ -1,0 +1,2704 @@
+<?xml version="1.0" ?>
+
+<list>
+<!-- Inventory items-->
+<text>
+	<id>1</id>
+	<name>食物 +30
+水 +5
+</name>
+</text>
+
+<text>
+	<id>2</id>
+	<name>食物 +20
+</name>
+</text>
+
+<text>
+	<id>3</id>
+	<name>食物 +35
+</name>
+</text>
+
+<text>
+	<id>4</id>
+	<name>食物 +65
+</name>
+</text>
+
+<text>
+	<id>5</id>
+	<name>食物 +15
+水 +5
+最大堆叠：3
+
+可以用镐、干草叉或铁锹种植。
+</name>
+</text>
+
+<text>
+	<id>6</id>
+	<name>食物 +15
+水 +5
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>7</id>
+	<name>食物 +15
+水 +5
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>8</id>
+	<name>水 +30
+</name>
+</text>
+
+<text>
+	<id>9</id>
+	<name>水 +30
+</name>
+</text>
+
+<text>
+	<id>10</id>
+	<name>水 +50
+</name>
+</text>
+
+<text>
+	<id>11</id>
+	<name>适用于：M4、L85、FN CAL、AUG。
+最大堆叠：30
+</name>
+</text>
+
+<text>
+	<id>12</id>
+	<name>适用于：FNX、柯尔特、UMP-45。
+最大堆叠：30
+</name>
+</text>
+
+<text>
+	<id>13</id>
+	<name>适用于：锯短莫辛纳甘、莫辛纳甘、SVD、SV-98、麦德森。
+最大堆叠：20
+</name>
+</text>
+
+<text>
+	<id>14</id>
+	<name>适用于：SKS、AKM、RPK。
+最大堆叠：30
+</name>
+</text>
+
+<text>
+	<id>15</id>
+	<name>适用于：AK-74u、AK-74、AN-94。
+最大堆叠：30
+</name>
+</text>
+
+<text>
+	<id>16</id>
+	<name>适用于：马格南、马腿枪、连发步枪。
+最大堆叠：30
+</name>
+</text>
+
+<text>
+	<id>17</id>
+	<name>适用于：IZH-43、锯短 IZH、雷明顿、赛加-12k。
+最大堆叠：15
+</name>
+</text>
+
+<text>
+	<id>18</id>
+	<name>止血。
+使用时间：3 秒。
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>19</id>
+	<name>+50 血量。
+使用时间：6 秒。
+</name>
+</text>
+
+<text>
+	<id>20</id>
+	<name>照亮环境。燃烧时吸引附近僵尸。燃烧 90 秒。
+</name>
+</text>
+
+<text>
+	<id>21</id>
+	<name>2 秒后猛烈爆炸。
+</name>
+</text>
+
+<text>
+	<id>22</id>
+	<name>用于收音机、夜视仪、头灯。
+</name>
+</text>
+
+<text>
+	<id>23</id>
+	<name>部署后可以用火柴点燃。燃烧 3 分钟。可使用 3 次。
+</name>
+</text>
+
+<text>
+	<id>24</id>
+	<name>可以点燃篝火工具包生火，或点燃香烟。
+</name>
+</text>
+
+<text>
+	<id>25</id>
+	<name>+20 水
++40 热量
+
+制作材料：燃烧瓶。
+</name>
+</text>
+
+<text>
+	<id>26</id>
+	<name>止血。
+使用时间：5 秒。
+最大堆叠：3
+
+制作材料：燃烧瓶、篝火工具包。
+</name>
+</text>
+
+<text>
+	<id>27</id>
+	<name>食物 +15
+水 +15
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>28</id>
+	<name>+25 血量。
+使用时间：6 秒。
+</name>
+</text>
+
+<text>
+	<id>29</id>
+	<name>60 秒内回血速度翻倍。
+</name>
+</text>
+
+<text>
+	<id>30</id>
+	<name>水 +50
+</name>
+</text>
+
+<text>
+	<id>31</id>
+	<name>+20 食物
++20 水
+最大堆叠：3
+
+可以用镐、干草叉或铁锹种植。
+</name>
+</text>
+
+<text>
+	<id>32</id>
+	<name>+20 食物
++5 水
+最大堆叠：3
+
+可以用镐、干草叉或铁锹种植。
+</name>
+</text>
+
+<text>
+	<id>33</id>
+	<name>+15 食物
++15 水
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>34</id>
+	<name>+25 热量
+</name>
+</text>
+
+<text>
+	<id>35</id>
+	<name>用于部分装备时 +50% 耐久。
+</name>
+</text>
+
+<text>
+	<id>36</id>
+	<name>枪械 +25% 耐久。
+</name>
+</text>
+
+<text>
+	<id>37</id>
+	<name>制作材料：鱼竿、自制弓。
+</name>
+</text>
+
+<text>
+	<id>38</id>
+	<name>制作材料：篝火工具包、自制箭矢、自制背包、自制围栏。
+最大堆叠：5
+</name>
+</text>
+
+<text>
+	<id>39</id>
+	<name>用于部分装备时 +15% 耐久。
+前往第 3 座岛屿的修船必需品。
+</name>
+</text>
+
+<text>
+	<id>40</id>
+	<name>制作材料：自制布袋。
+</name>
+</text>
+
+<text>
+	<id>41</id>
+	<name>制作材料：自制布袋、自制弓、鱼竿。
+</name>
+</text>
+
+<text>
+	<id>42</id>
+	<name>剥皮动物所需。
+
+伤害：14-24
+暴击几率：10%
+格挡几率：5%
+攻击速度：0.8 秒
+</name>
+</text>
+
+<text>
+	<id>43</id>
+	<name>剥皮动物所需。
+
+伤害：15-25
+暴击几率：15%
+格挡几率：5%
+攻击速度：0.8 秒
+</name>
+</text>
+
+<text>
+	<id>44</id>
+	<name>剥皮动物所需。
+
+伤害：16-26
+暴击几率：20%
+格挡几率：5%
+攻击速度：0.8 秒
+</name>
+</text>
+
+<text>
+	<id>45</id>
+	<name>10 秒内每秒 +50 血量并提高移动速度。
+效果结束时血量降至 25。
+</name>
+</text>
+
+<text>
+	<id>46</id>
+	<name>消除疾病。并在 5 分钟内提供疾病免疫。
+使用时间：3 秒。
+</name>
+</text>
+
+<text>
+	<id>47</id>
+	<name>最多可使用 5 次。
+可以用镐、干草叉或铁锹种植。
+</name>
+</text>
+
+<text>
+	<id>48</id>
+	<name>最多可使用 5 次。
+可以用镐、干草叉或铁锹种植。
+</name>
+</text>
+
+<text>
+	<id>49</id>
+	<name>制作材料：篝火工具包。
+</name>
+</text>
+
+<text>
+	<id>50</id>
+	<name>制作材料：篝火工具包、围栏。
+前往第 2 座岛屿的修船必需品。
+</name>
+</text>
+
+<text>
+	<id>51</id>
+	<name>射击后有 75% 几率损坏。
+适用于：自制弓、十字弩。
+伤害：37-63
+最大堆叠：5
+</name>
+</text>
+
+<text>
+	<id>52</id>
+	<name>射击后有 50% 几率损坏。
+适用于：自制弓、十字弩。
+伤害：56-94
+最大堆叠：5
+</name>
+</text>
+
+<text>
+	<id>53</id>
+	<name>用于可驾驶车辆时 +50 燃油。
+前往第 4 座岛屿的修船必需品。
+</name>
+</text>
+
+<text>
+	<id>54</id>
+	<name>每次使用 +12 水。
+可以用水泵灌满。
+</name>
+</text>
+
+<text>
+	<id>55</id>
+	<name>每次使用 +25 水。
+可以用水泵灌满。
+</name>
+</text>
+
+<text>
+	<id>56</id>
+	<name>部署并触发后以径向弹片爆炸。不会被你触发。
+</name>
+</text>
+
+<text>
+	<id>57</id>
+	<name>部署并触发后对目标造成 200 伤害。不会被你触发。
+</name>
+</text>
+
+<text>
+	<id>58</id>
+	<name>适用于：.22 运动步枪、水陆两用手枪。
+最大堆叠：50
+</name>
+</text>
+
+<text>
+	<id>59</id>
+	<name>将可驾驶车辆修复 +25%。
+</name>
+</text>
+
+<text>
+	<id>60</id>
+	<name>+25 食物
++10 水
+食用时有 50% 几率生病。
+
+可以在篝火上烹饪。
+</name>
+</text>
+
+<text>
+	<id>61</id>
+	<name>+50 食物
++10 水
++15 血量
+</name>
+</text>
+
+<text>
+	<id>62</id>
+	<name>+100 水
++50 经验
+60 秒内回血速度翻倍。
+</name>
+</text>
+
+<text>
+	<id>63</id>
+	<name>20 秒内移动速度 +15%。
+</name>
+</text>
+
+<text>
+	<id>68</id>
+	<name>20 秒内移动速度 +15%。
+</name>
+</text>
+
+<text>
+	<id>69</id>
+	<name>适用于：格洛克、MP5k、MAC-10。
+最大堆叠：40
+</name>
+</text>
+
+<text>
+	<id>70</id>
+	<name>部署后使敌人减速 2 秒。
+</name>
+</text>
+
+<text>
+	<id>71</id>
+	<name>+25 食物
++10 水
+食用时有 50% 几率生病。
+
+可以在篝火上烹饪。
+</name>
+</text>
+
+<text>
+	<id>72</id>
+	<name>+35 食物
++10 水
++30 血量。
+</name>
+</text>
+
+<text>
+	<id>73</id>
+	<name>+10 食物
++10 水
+30 秒内回血速度翻倍。
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>74</id>
+	<name>+10 食物
++20 水
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>75</id>
+	<name>在地图上标记附近区域的损坏军用吉普和直升机坠机点。每次使用消耗 10% 电量。
+</name>
+</text>
+
+<text>
+	<id>76</id>
+	<name>安装后爆头几率 +5%。
+枪械默认散布 -2。
+
+可安装在：MP5k、UMP-45、AK-74u、AK-74、AN-94、AKM、M4、L85、FN CAL、RPK、赛加12k、Bizon、Groza、VSS。
+</name>
+</text>
+
+<text>
+	<id>77</id>
+	<name>安装后爆头几率 +15%。
+枪械默认散布 -4。
+
+可安装在：SKS、莫辛纳甘。
+</name>
+</text>
+
+<text>
+	<id>78</id>
+	<name>安装后爆头几率 +15%。
+枪械默认散布 -4。
+
+可安装在：AK-74u、AK-74、AN-94、AKM、RPK、Groza、VSS。
+</name>
+</text>
+
+<text>
+	<id>79</id>
+	<name>安装后爆头几率 +15%。
+枪械默认散布 -4。
+
+可安装在：MP5k、UMP-45、M4、L85、FN-CAL
+</name>
+</text>
+
+<text>
+	<id>80</id>
+	<name>安装到武器上后射击无声。
+
+可安装在：AK-74u、AN-94、AK-74。
+</name>
+</text>
+
+<text>
+	<id>81</id>
+	<name>安装到武器上后射击无声。
+
+可安装在：M4、L85、FN-CAL、AUG。
+</name>
+</text>
+
+<text>
+	<id>82</id>
+	<name>允许制作 IZH-43、莫辛纳甘或连发步枪的锯短版本。
+</name>
+</text>
+
+<text>
+	<id>83</id>
+	<name>安装到武器上后装填速度提高 30%。
+
+可安装在：IZH-43、雷明顿、SKS、莫辛纳甘、连发步枪。
+</name>
+</text>
+
+<text>
+	<id>85</id>
+	<name>+40 食物
++40 水
+可使用 2 次。
+</name>
+</text>
+
+<text>
+	<id>86</id>
+	<name>可以在水塘中钓鱼。
+每次使用消耗 10% 耐久。
+</name>
+</text>
+
+<text>
+	<id>87</id>
+	<name>可以在水塘中钓鱼。
+每次使用消耗 25% 耐久。
+</name>
+</text>
+
+<text>
+	<id>88</id>
+	<name>幸存者丢失的物品。可以打开或归还。
+</name>
+</text>
+
+<text>
+	<id>89</id>
+	<name>安装到武器上后装填速度提高 30%。
+
+可安装在：AK-74u、AK-74、AN-94、AKM、M4、L85、FN CAL、AUG、RPK、赛加12k、Groza、VSS。
+</name>
+</text>
+
+<text>
+	<id>90</id>
+	<name>降低霰弹枪的弹丸散布。
+
+可安装在：IZH-43、雷明顿、赛加-12k。
+</name>
+</text>
+
+<text>
+	<id>91</id>
+	<name>+10 食物
++10 水
+食用时有 50% 几率生病。
+
+可以在篝火上烹饪。
+</name>
+</text>
+
+<text>
+	<id>92</id>
+	<name>+35 食物
++15 水
+食用时有 50% 几率生病。
+
+可以在篝火上烹饪。
+</name>
+</text>
+
+<text>
+	<id>93</id>
+	<name>+10 食物
++10 水
+食用时有 50% 几率生病。
+
+可以在篝火上烹饪。
+</name>
+</text>
+
+<text>
+	<id>94</id>
+	<name>+35 食物
++15 水
+食用时有 50% 几率生病。
+
+可以在篝火上烹饪。
+</name>
+</text>
+
+<text>
+	<id>95</id>
+	<name>+25 食物
++10 水
++10 血量
+</name>
+</text>
+
+<text>
+	<id>96</id>
+	<name>+50 食物
++10 水
++10 血量
+</name>
+</text>
+
+<text>
+	<id>97</id>
+	<name>必定坏肚子
+</name>
+</text>
+
+<text>
+	<id>98</id>
+	<name>安装后爆头几率 +25%。
+枪械默认散布 -6。
+
+可安装在：SKS、莫辛纳甘、SVD、SV-98。
+</name>
+</text>
+
+<text>
+	<id>99</id>
+	<name>部署并触发后向前方爆炸。
+</name>
+</text>
+
+<text>
+	<id>100</id>
+	<name>适用于：PM、PB、Bizon。
+最大堆叠：40
+</name>
+</text>
+
+<text>
+	<id>101</id>
+	<name>适用于：VSS、Groza。
+最大堆叠：30
+</name>
+</text>
+
+<text>
+	<id>102</id>
+	<name>投掷后爆炸并灼烧敌人。
+</name>
+</text>
+
+<text>
+	<id>103</id>
+	<name>信号枪。射击后呼叫空投。空投将在 20 秒后送达。
+</name>
+</text>
+
+<text>
+	<id>104</id>
+	<name>适用于可驾驶悍马上的车载机枪。
+</name>
+</text>
+
+<text>
+	<id>105</id>
+	<name>适用于 M203 榴弹发射器。
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>106</id>
+	<name>适用于 GP-25 榴弹发射器。
+最大堆叠：3
+</name>
+</text>
+
+<text>
+	<id>107</id>
+	<name>西方下挂式榴弹发射器。
+安装后可发射 40mm 榴弹。
+
+可安装在：M4、L85、FN-CAL、AUG。
+</name>
+</text>
+
+<text>
+	<id>108</id>
+	<name>东方下挂式榴弹发射器。
+安装后可发射 VOG-25 榴弹。
+
+可安装在：AK-74、AKM、AN-94。
+</name>
+</text>
+
+<text>
+	<id>109</id>
+	<name>你可以注入自己的血液供以后使用。
+至少需要 50% 血量。
+</name>
+</text>
+
+<text>
+	<id>110</id>
+	<name>用于磨利刀刃的特殊石头。
+用于近战武器时 +25 耐久。
+
+可用于：短柄斧、消防斧、剑、武士刀、刀具。
+</name>
+</text>
+
+<text>
+	<id>111</id>
+	<name>AK 步枪通用前握把。
+大幅降低射击时的最大散布。使跑动射击和持续射击更高效。
+
+可用于：AK-74、AKM、RPK。
+</name>
+</text>
+
+<text>
+	<id>112</id>
+	<name>带皮卡汀尼导轨武器的前握把。
+大幅降低射击时的最大散布。使跑动射击和持续射击更高效。
+
+可用于：UMP-45、M4、L85。
+</name>
+</text>
+
+<text>
+	<id>113</id>
+	<name>小笔记本，记录着这座岛屿上有趣地点的坐标。
+如果不用它，到达下一座岛屿时它会被移除。
+</name>
+</text>
+
+<text>
+	<id>114</id>
+	<name>+10 食物
++10 水
++2 血量
+</name>
+</text>
+
+<text>
+	<id>115</id>
+	<name>
+</name>
+</text>
+
+<text>
+	<id>116</id>
+	<name>+200 经验
+</name>
+</text>
+
+<text>
+	<id>117</id>
+	<name>制作物资箱的材料。
+</name>
+</text>
+
+<text>
+	<id>118</id>
+	<name>止血。
+使用时间：1 秒。
+最大堆叠：5
+</name>
+</text>
+
+<text>
+	<id>119</id>
+	<name>制造烟幕 15 秒，阻挡敌人视线。
+</name>
+</text>
+
+<text>
+	<id>120</id>
+	<name>使用后 30 秒内 +5 热量并减缓饥饿和口渴。
+赠送给其他幸存者时 +5 业力。
+最大堆叠：10
+</name>
+</text>
+
+<text>
+	<id>121</id>
+	<name>+20 水
++10 热量
+</name>
+</text>
+
+<text>
+	<id>122</id>
+	<name>用于部分装备时 +25% 耐久。
+</name>
+</text>
+
+<text>
+	<id>123</id>
+	<name>提高植物的生长速度。
+</name>
+</text>
+
+<text>
+	<id>124</id>
+	<name>瞄准速度和后坐力恢复提高 30%。
+
+可安装在：UMP-45、Vector、AK-74u、AK-74、AN-94、AKM、M4、L85、AUG、RPK、莫辛纳甘、SKS、SVD、SV-98、VSS。
+</name>
+</text>
+
+<text>
+	<id>125</id>
+	<name>可以点燃篝火工具包生火，或点燃香烟。
+</name>
+</text>
+
+<text>
+	<id>126</id>
+	<name>打开地下地堡中的特殊门。只对当前岛屿的地堡有效。
+</name>
+</text>
+
+<!-- Pistols-->
+<!-- fnx -->
+<text>
+	<id>211</id>
+	<name>伤害：15-25
+精度：5
+瞄准速度：10
+弹药：45 ACP
+弹匣容量：15
+</name>
+</text>
+
+<!-- colt -->
+
+<text>
+	<id>212</id>
+	<name>伤害：18-32
+精度：6
+瞄准速度：10
+弹药：45 ACP
+弹匣容量：7
+</name>
+</text>
+
+<!-- magnum -->
+
+<text>
+	<id>213</id>
+	<name>伤害：33-57
+精度：6
+瞄准速度：6
+弹药：.357
+弹匣容量：6
+</name>
+</text>
+
+<!-- glock -->
+
+<text>
+	<id>214</id>
+	<name>伤害：14-24
+精度：7
+瞄准速度：10
+弹药：9mm
+弹匣容量：18
+</name>
+</text>
+
+<!-- amphibia-->
+
+<text>
+	<id>215</id>
+	<name>内置消音器。
+伤害：11-19
+精度：8
+瞄准速度：10
+弹药：22lr
+弹匣容量：10
+</name>
+</text>
+
+<!-- IZH S-->
+
+<text>
+	<id>216</id>
+	<name>伤害：15-125
+精度：1
+瞄准速度：8
+弹药：12号霰弹
+弹匣容量：2
+</name>
+</text>
+
+<!-- Mosin S-->
+
+<text>
+	<id>217</id>
+	<name>伤害：67-113
+精度：1
+瞄准速度：6
+弹药：7.62
+弹匣容量：5
+</name>
+</text>
+
+<!-- Rare colt-->
+
+<text>
+	<id>218</id>
+	<name>伤害：18-32
+精度：7
+瞄准速度：10
+弹药：45 ACP
+弹匣容量：12
+</name>
+</text>
+
+<!-- MAc-->
+
+<text>
+	<id>219</id>
+	<name>伤害：12-25
+精度：2
+瞄准速度：7
+射速：10
+弹药：9mm
+弹匣容量：30
+</name>
+</text>
+
+<!-- MAre-->
+
+<text>
+	<id>220</id>
+	<name>伤害：33-57
+精度：2
+瞄准速度：8
+弹药：.357
+弹匣容量：7
+</name>
+</text>
+
+<!-- PM-->
+
+<text>
+	<id>221</id>
+	<name>伤害：18-30
+精度：4
+瞄准速度：10
+弹药：9×18
+弹匣容量：8
+</name>
+</text>
+
+<!-- PB-->
+
+<text>
+	<id>222</id>
+	<name>内置消音器。
+伤害：18-30
+精度：3
+瞄准速度：10
+弹药：9×18
+弹匣容量：8
+</name>
+</text>
+
+<!-- Deagle-->
+
+<text>
+	<id>223</id>
+	<name>伤害：30-50
+精度：6
+瞄准速度：7
+弹药：.357
+弹匣容量：9
+</name>
+</text>
+
+<!-- Main Weapons-->
+
+<!-- Mosin-->
+<text>
+	<id>232</id>
+	<name>伤害：67-113
+精度：9
+瞄准速度：4
+射速：46
+弹药：7.62
+弹匣容量：5
+</name>
+</text>
+
+<!-- M4-->
+<text>
+	<id>233</id>
+	<name>伤害：18-30
+精度：8
+瞄准速度：5
+射速：600
+弹药：5.56
+弹匣容量：30
+</name>
+</text>
+
+<!-- IZH -->
+<text>
+	<id>234</id>
+	<name>伤害：15-125
+精度：8
+瞄准速度：5
+弹药：5.56
+弹匣容量：30
+</name>
+</text>
+
+<!-- IZH -->
+<text>
+	<id>234</id>
+	<name>伤害：15-125
+精度：2
+瞄准速度：4
+弹药：12号霰弹
+弹匣容量：2
+</name>
+</text>
+
+<!-- AK-74 -->
+<text>
+	<id>235</id>
+	<name>伤害：18-32
+精度：7
+瞄准速度：5
+射速：600
+弹药：5.45
+弹匣容量：30
+</name>
+</text>
+
+<!-- AKM -->
+<text>
+	<id>236</id>
+	<name>伤害：26-44
+精度：7
+瞄准速度：5
+射速：460
+弹药：7.62×39
+弹匣容量：30
+</name>
+</text>
+
+<!-- AK-74u -->
+<text>
+	<id>237</id>
+	<name>伤害：18-32
+精度：6
+瞄准速度：6
+射速：750
+弹药：5.45
+弹匣容量：30
+</name>
+</text>
+
+<!-- SKS -->
+<text>
+	<id>238</id>
+	<name>伤害：33-57
+精度：8
+瞄准速度：6
+射速：200
+弹药：7.62×39
+弹匣容量：10
+</name>
+</text>
+
+<!-- L85 -->
+<text>
+	<id>240</id>
+	<name>伤害：18-30
+精度：9
+瞄准速度：5
+射速：500
+弹药：5.56
+弹匣容量：30
+</name>
+</text>
+
+<!-- Remington -->
+<text>
+	<id>241</id>
+	<name>伤害：15-125
+精度：2
+瞄准速度：4
+射速：66
+弹药：12号霰弹
+弹匣容量：6
+</name>
+</text>
+
+<!-- Bow -->
+<text>
+	<id>243</id>
+	<name>伤害：37-94
+精度：6
+瞄准速度：6
+弹药：复合或自制箭矢。
+弹匣容量：1
+</name>
+</text>
+
+<!-- CrossBow -->
+<text>
+	<id>244</id>
+	<name>伤害：37-94
+精度：9
+瞄准速度：6
+弹药：复合或自制箭矢。
+弹匣容量：1
+</name>
+</text>
+
+<!-- Sporter -->
+<text>
+	<id>246</id>
+	<name>伤害：15-25
+精度：8
+瞄准速度：6
+射速：300
+弹药：22lr
+弹匣容量：30
+</name>
+</text>
+
+<!-- Repeater -->
+<text>
+	<id>247</id>
+	<name>伤害：30-50
+精度：7
+瞄准速度：6
+射速：85
+弹药：.357
+弹匣容量：7
+</name>
+</text>
+
+<!-- SVD -->
+<text>
+	<id>248</id>
+	<name>伤害：60-100
+精度：9
+瞄准速度：3
+射速：150
+弹药：7.62
+弹匣容量：10
+</name>
+</text>
+
+<!-- MP5k -->
+<text>
+	<id>249</id>
+	<name>伤害：13-23
+精度：6
+瞄准速度：6
+射速：850
+弹药：9mm
+弹匣容量：30
+</name>
+</text>
+
+<!-- UMP -->
+<text>
+	<id>251</id>
+	<name>伤害：13-23
+精度：5
+瞄准速度：6
+射速：650
+弹药：45 ACP
+弹匣容量：30
+</name>
+</text>
+
+<!-- RPk -->
+<text>
+	<id>252</id>
+	<name>伤害：26-44
+精度：7
+瞄准速度：6
+射速：600
+弹药：7.62×39
+弹匣容量：40
+</name>
+</text>
+
+<!-- FN CAL -->
+<text>
+	<id>253</id>
+	<name>伤害：22-38
+精度：9
+瞄准速度：5
+射速：550
+弹药：5.56
+弹匣容量：30
+</name>
+</text>
+
+<!-- Saiga12 -->
+<text>
+	<id>254</id>
+	<name>伤害：15-125
+精度：1
+瞄准速度：4
+射速：200
+弹药：12号霰弹
+弹匣容量：8
+</name>
+</text>
+
+<!-- AUG -->
+<text>
+	<id>255</id>
+	<name>内置瞄准镜，爆头几率 +15%。
+伤害：18-30
+精度：9
+瞄准速度：5
+射速：650
+弹药：5.56
+弹匣容量：30
+</name>
+</text>
+
+<!-- Bizon -->
+<text>
+	<id>256</id>
+	<name>伤害：18-20
+精度：6
+瞄准速度：6
+射速：550
+弹药：9×18
+弹匣容量：40
+</name>
+</text>
+
+<!-- Groza -->
+<text>
+	<id>257</id>
+	<name>内置 GP-25 榴弹发射器。
+伤害：30-50
+精度：7
+瞄准速度：6
+射速：600
+弹药：9×39
+弹匣容量：30
+</name>
+</text>
+
+<!-- VSS -->
+<text>
+	<id>258</id>
+	<name>伤害：37-62
+精度：10
+瞄准速度：5
+射速：600
+弹药：9×39
+弹匣容量：20
+</name>
+</text>
+
+<!-- SV98 -->
+<text>
+	<id>259</id>
+	<name>伤害：61-106
+精度：9
+瞄准速度：3
+射速：66
+弹药：7.62
+弹匣容量：10
+</name>
+</text>
+
+<!-- MAdsen -->
+<text>
+	<id>260</id>
+	<name>非常脆弱的生锈枪。
+伤害：52-87
+精度：6
+瞄准速度：6
+射速：500
+弹药：7.62
+弹匣容量：20
+</name>
+</text>
+
+<!-- AN94 -->
+<text>
+	<id>261</id>
+	<name>两发点射。
+伤害：24-40
+精度：8
+瞄准速度：3
+射速：1800
+弹药：5.45
+弹匣容量：30
+</name>
+</text>
+
+
+<!-- Slilenced Remington-->
+<text>
+	<id>262</id>
+	<name>内置消音器。
+伤害：15-125
+精度：2
+瞄准速度：4
+射速：66
+弹药：12号霰弹
+弹匣容量：6
+</name>
+</text>
+
+<!-- M16A2-->
+<text>
+	<id>263</id>
+	<name>三发点射。
+伤害：18-30
+精度：9
+瞄准速度：4
+射速：1800
+弹药：5.56
+弹匣容量：30
+</name>
+</text>
+
+<!-- Vector-->
+<text>
+	<id>264</id>
+	<name>伤害：13-23
+精度：6
+瞄准速度：6
+射速：1200
+弹药：45 ACP
+弹匣容量：30
+</name>
+</text>
+
+<!-- Backpacks -->
+<!-- Taloon -->
+<text>
+	<id>301</id>
+	<name>+3 格。
+</name>
+</text>
+
+<text>
+	<id>302</id>
+	<name>+7 格。
+</name>
+</text>
+
+<text>
+	<id>303</id>
+	<name>+5 格。
+</name>
+</text>
+
+<text>
+	<id>304</id>
+	<name>+2 格。
+</name>
+</text>
+
+<text>
+	<id>305</id>
+	<name>+3 格。
+</name>
+</text>
+
+<text>
+	<id>306</id>
+	<name>+5 格。
+</name>
+</text>
+
+<text>
+	<id>307</id>
+	<name>可以部署。存放在里面的物资永远不会消失。部署后无法回收。???
+</name>
+</text>
+
+<text>
+	<id>308</id>
+	<name>+6 格。
+</name>
+</text>
+
+<text>
+	<id>309</id>
+	<name>+1 格。
+</name>
+</text>
+
+<!-- Pants -->
+<!-- Jeans -->
+<text>
+	<id>351</id>
+	<name>+2 格
++5 热量
+</name>
+</text>
+
+<!-- Worker -->
+<text>
+	<id>352</id>
+	<name>+3 格
++5 热量
+</name>
+</text>
+
+<!-- Sport -->
+<text>
+	<id>353</id>
+	<name>+1 格
++3 热量
+</name>
+</text>
+
+<!-- Gorka -->
+<text>
+	<id>354</id>
+	<name>+3 格
++7 热量
++2 护甲
+</name>
+</text>
+
+<!-- Medic -->
+<text>
+	<id>355</id>
+	<name>+2 格
++4 热量
+</name>
+</text>
+
+<!-- Orel -->
+<text>
+	<id>356</id>
+	<name>+2 格
++5 热量
++1 护甲
+</name>
+</text>
+
+<!-- Hunter -->
+<text>
+	<id>357</id>
+	<name>+3 格
++6 热量
++1 护甲
+</name>
+</text>
+
+<!-- Vest -->
+<!-- Bulletproof -->
+<text>
+	<id>401</id>
+	<name>+8 护甲
+</name>
+</text>
+
+<!-- assault -->
+<text>
+	<id>402</id>
+	<name>+2 格
++3 护甲
+</name>
+</text>
+
+<!-- press -->
+<text>
+	<id>403</id>
+	<name>+1 格
++6 护甲
+</name>
+</text>
+
+<!-- High Capacity -->
+<text>
+	<id>404</id>
+	<name>+3 格
++3 护甲
+</name>
+</text>
+
+<!-- Kevlar -->
+<text>
+	<id>405</id>
+	<name>+3 格
++10 护甲
+</name>
+</text>
+
+<!-- Soviet -->
+<text>
+	<id>406</id>
+	<name>+2 格
++8 护甲
+</name>
+</text>
+
+<!-- FARTUK -->
+<text>
+	<id>407</id>
+	<name>+1 格
+</name>
+</text>
+
+<!-- Helmets -->
+<!-- Moto -->
+<text>
+	<id>451</id>
+	<name>+2 热量
++3 护甲
+</name>
+</text>
+
+<!-- Military -->
+<text>
+	<id>452</id>
+	<name>+2 热量
++4 护甲
+</name>
+</text>
+
+<!-- Hard -->
+<text>
+	<id>453</id>
+	<name>+2 热量
++2 护甲
+</name>
+</text>
+
+<!-- Gasmask -->
+<text>
+	<id>454</id>
+	<name>+2 热量
++1 护甲
+</name>
+</text>
+
+<!-- Moto2 -->
+<text>
+	<id>455</id>
+	<name>+2 热量
++3 护甲
+</name>
+</text>
+
+<!-- Moto3 -->
+<text>
+	<id>456</id>
+	<name>+2 热量
++3 护甲
+</name>
+</text>
+
+<!-- Cap -->
+<text>
+	<id>457</id>
+	<name>+2 热量
+</name>
+</text>
+
+<!-- WarmHat -->
+<text>
+	<id>458</id>
+	<name>+4 热量
+</name>
+</text>
+
+<!-- Ushanka -->
+<text>
+	<id>459</id>
+	<name>+6 热量
+</name>
+</text>
+
+<!-- Beret -->
+<text>
+	<id>460</id>
+	<name>+2 热量
+</name>
+</text>
+
+<!-- Balaklava -->
+<text>
+	<id>461</id>
+	<name>+3 热量
+</name>
+</text>
+
+<!-- Lamp -->
+<text>
+	<id>462</id>
+	<name>+1 热量
+消耗电池。
+</name>
+</text>
+
+<!-- Cowboy -->
+<text>
+	<id>463</id>
+	<name>+2 热量
+</name>
+</text>
+
+<!-- Welding -->
+<text>
+	<id>464</id>
+	<name>+1 热量
++1 护甲
+</name>
+</text>
+
+<!-- Gorka -->
+<text>
+	<id>465</id>
+	<name>+3 热量
++5 护甲
+</name>
+</text>
+
+<!-- Gorka -->
+<text>
+	<id>465</id>
+	<name>+3 热量
++5 护甲
+</name>
+</text>
+
+<!-- Police Hat -->
+<text>
+	<id>466</id>
+	<name>+2 热量
+</name>
+</text>
+
+<!-- NVG -->
+<text>
+	<id>467</id>
+	<name>+1 热量
+消耗电池。
+</name>
+</text>
+
+<!-- Bandana -->
+<text>
+	<id>468</id>
+	<name>+2 热量
+可以撕成碎布。
+</name>
+</text>
+
+<!-- Knight helmet -->
+<text>
+	<id>469</id>
+	<name>+4 热量
++5 护甲。
+</name>
+</text>
+
+<!-- Pilot helmet -->
+<text>
+	<id>470</id>
+	<name>+3 热量
++2 护甲。
+</name>
+</text>
+
+<!-- Outfits -->
+
+<!-- Hoodie -->
+<text>
+	<id>501</id>
+	<name>+2 格
++5 热量
+可以撕成碎布。
+</name>
+</text>
+
+<!-- Shirt -->
+<text>
+	<id>502</id>
+	<name>+1 格
++3 热量
+可以撕成碎布。
+</name>
+</text>
+
+<!-- Hoodie -->
+<text>
+	<id>504</id>
+	<name>+2 格
++5 热量
+可以撕成碎布。
+</name>
+</text>
+
+<!-- rain -->
+<text>
+	<id>505</id>
+	<name>+2 格
++6 热量
+
+防雨防寒
+</name>
+</text>
+
+<!-- rain2 -->
+<text>
+	<id>506</id>
+	<name>+2 格
++6 热量
+
+防雨防寒
+</name>
+</text>
+
+<!-- raider jacket -->
+<text>
+	<id>507</id>
+	<name>+1 格
++4 热量
++2 护甲
+</name>
+</text>
+
+<!-- fur coat -->
+<text>
+	<id>509</id>
+	<name>+1 格
++9 热量
+</name>
+</text>
+
+<!-- Gorka -->
+<text>
+	<id>510</id>
+	<name>+3 格
++7 热量
++2 护甲
+</name>
+</text>
+
+<!-- tshirt -->
+<text>
+	<id>511</id>
+	<name>+2 热量
+可以撕成碎布。
+</name>
+</text>
+
+<!-- paramedic -->
+<text>
+	<id>512</id>
+	<name>+2 格
++5 热量
+</name>
+</text>
+
+<!-- orel -->
+<text>
+	<id>513</id>
+	<name>+2 格
++5 热量
++1 护甲
+</name>
+</text>
+
+<!-- tracksuit -->
+<text>
+	<id>514</id>
+	<name>+1 格
++4 热量
+</name>
+</text>
+
+<!-- Dress -->
+<text>
+	<id>515</id>
+	<name>+1 格
++4 热量
+</name>
+</text>
+
+<!-- Down -->
+<text>
+	<id>516</id>
+	<name>+2 格
++8 热量
+</name>
+</text>
+
+<!-- Hunter -->
+<text>
+	<id>517</id>
+	<name>+3 格
++6 热量
++1 护甲
+</name>
+</text>
+
+<!-- Sweater -->
+<text>
+	<id>518</id>
+	<name>+1 格
++6 热量
+</name>
+</text>
+
+<!-- Hoodie Red-->
+<text>
+	<id>519</id>
+	<name>+3 格
++8 热量
+</name>
+</text>
+
+<!-- Melee -->
+
+<!-- Axe -->
+<text>
+	<id>551</id>
+	<name>伤害：52-87
+暴击几率：25%
+格挡几率：25%
+攻击速度：1.5 秒
+可以砍树。
+</name>
+</text>
+
+<!-- Shovel -->
+<text>
+	<id>552</id>
+	<name>伤害：19-31
+暴击几率：15%
+格挡几率：35%
+攻击速度：1.6 秒
+可以用于种植。
+</name>
+</text>
+
+<!-- Wrench -->
+<text>
+	<id>553</id>
+	<name>伤害：23-38
+暴击几率：25%
+格挡几率：15%
+攻击速度：1.3 秒
+</name>
+</text>
+
+<!-- Baseball bat -->
+<text>
+	<id>554</id>
+	<name>伤害：26-44
+暴击几率：25%
+格挡几率：15%
+攻击速度：1 秒
+</name>
+</text>
+
+<!-- Fire axe -->
+<text>
+	<id>555</id>
+	<name>伤害：45-75
+暴击几率：25%
+格挡几率：25%
+攻击速度：1.6 秒
+可以砍树。
+</name>
+</text>
+
+<!-- Crowbar -->
+<text>
+	<id>556</id>
+	<name>伤害：19-31
+暴击几率：25%
+格挡几率：15%
+攻击速度：1.2 秒
+</name>
+</text>
+
+<!-- Kitchen knife -->
+<text>
+	<id>557</id>
+	<name>伤害：14-24
+暴击几率：10%
+格挡几率：5%
+攻击速度：0.8 秒
+</name>
+</text>
+
+<!-- Hunter knife -->
+<text>
+	<id>558</id>
+	<name>伤害：15-25
+暴击几率：15%
+格挡几率：5%
+攻击速度：0.8 秒
+</name>
+</text>
+
+<!-- Army knife -->
+<text>
+	<id>559</id>
+	<name>伤害：16-26
+暴击几率：20%
+格挡几率：5%
+攻击速度：0.8 秒
+</name>
+</text>
+
+<!-- Pickaxe-->
+<text>
+	<id>560</id>
+	<name>伤害：33-55
+暴击几率：15%
+格挡几率：35%
+攻击速度：1.3 秒
+可以用于种植。
+</name>
+</text>
+
+<!-- Pitchfork -->
+<text>
+	<id>561</id>
+	<name>伤害：30-50
+暴击几率：15%
+格挡几率：35%
+攻击速度：1.2 秒
+可以用于种植。
+</name>
+</text>
+
+<!-- Sledgehammer -->
+<text>
+	<id>562</id>
+	<name>伤害：36-60
+暴击几率：15%
+格挡几率：35%
+攻击速度：1.8 秒
+</name>
+</text>
+
+<!-- Sword -->
+<text>
+	<id>563</id>
+	<name>伤害：56-94
+暴击几率：35%
+格挡几率：25%
+攻击速度：1.5 秒
+可以砍树。
+</name>
+</text>
+
+<!-- Pan -->
+<text>
+	<id>564</id>
+	<name>伤害：25-41
+暴击几率：40%
+格挡几率：35%
+攻击速度：0.9 秒
+</name>
+</text>
+
+<!-- Katana -->
+<text>
+	<id>565</id>
+	<name>伤害：48-81
+暴击几率：35%
+格挡几率：25%
+攻击速度：1.2 秒
+可以砍树。
+</name>
+</text>
+
+<!-- Secret location reveal-->
+<text>
+	<id>150</id>
+	<name>这可是个好发现！</name>
+</text>
+
+<text>
+	<id>151</id>
+	<name>呼叫空投</name>
+</text>
+
+<text>
+	<id>152</id>
+	<name>装填</name>
+</text>
+
+<text>
+	<id>153</id>
+	<name>这辆车没有安装车载机枪。</name>
+</text>
+
+<text>
+	<id>154</id>
+	<name>我在这里做不了。</name>
+</text>
+
+<text>
+	<id>155</id>
+	<name>选择难度等级。
+有些解锁只能在更高难度下完成。
+</name>
+</text>
+
+<text>
+	<id>156</id>
+	<name>我需要一把装有榴弹发射器的武器。</name>
+</text>
+
+<text>
+	<id>157</id>
+	<name>弹药：</name>
+</text>
+
+<text>
+	<id>158</id>
+	<name>我生病的时候做不了。</name>
+</text>
+
+<text>
+	<id>159</id>
+	<name>我需要更多血量才能这样做。</name>
+</text>
+
+<text>
+	<id>160</id>
+	<name>我已经在流血了！</name>
+</text>
+
+<text>
+	<id>161</id>
+	<name>拒绝</name>
+</text>
+
+<text>
+	<id>162</id>
+	<name>我们没什么好谈的。</name>
+</text>
+
+<!-- Фразы бота при командах-->
+
+
+<text>
+	<id>163</id>
+	<name>跟着你。</name>
+</text>
+
+<text>
+	<id>164</id>
+	<name>我会守住这片区域。</name>
+</text>
+
+<!-- Фразы для сна-->
+
+<text>
+	<id>165</id>
+	<name>周围有敌人时我睡不着。</name>
+</text>
+
+<text>
+	<id>166</id>
+	<name>我最好晚上睡。</name>
+</text>
+
+<text>
+	<id>167</id>
+	<name>你可以在夜间睡觉。如果状态良好，你可以睡到早上 06:00。如果饥饿或口渴过高，你会提前醒来。
+</name>
+</text>
+
+<text>
+	<id>168</id>
+	<name>去睡觉</name>
+</text>
+
+<text>
+	<id>169</id>
+	<name>当前资源允许你睡到 </name>
+</text>
+
+<text>
+	<id>170</id>
+	<name>这里太冷了，没法睡。</name>
+</text>
+
+<text>
+	<id>171</id>
+	<name>我太饿了。</name>
+</text>
+
+<text>
+	<id>172</id>
+	<name>我太渴了。</name>
+</text>
+
+<text>
+	<id>173</id>
+	<name>我流血的时候做不了。</name>
+</text>
+
+<text>
+	<id>174</id>
+	<name>睡觉至少需要一个屋顶。</name>
+</text>
+
+<text>
+	<id>175</id>
+	<name>你现在太饿或太渴，无法入睡。</name>
+</text>
+
+<text>
+	<id>176</id>
+	<name>白天我睡不着。</name>
+</text>
+
+<text>
+	<id>177</id>
+	<name>我在这里睡不着。</name>
+</text>
+
+<text>
+	<id>178</id>
+	<name>传说</name>
+</text>
+
+<text>
+	<id>179</id>
+	<name>太近了！</name>
+</text>
+
+<!-- Персонажи -->
+
+<text>
+	<id>180</id>
+	<name>泽维尔 “飞行员”
+初始装备：Gorka 裤、毛衣、飞行员头盔、UMP-45、信号棒。
+已解锁特长：生存专家（2 级）、侦察兵</name>
+</text>
+
+<text>
+	<id>181</id>
+	<name>泽维尔 “飞行员”
+解锁条件：在一次游戏内找到 13 个直升机坠机点。
+“传说”难度。</name>
+</text>
+
+<text>
+	<id>182</id>
+	<name>鲁道夫 “猎手”
+初始装备：IZH-43、护耳帽、12号霰弹 ×10、猎刀、鱼竿、猎装夹克、猎装裤。
+已解锁特长：猎人（2 级）、警觉</name>
+</text>
+
+<text>
+	<id>183</id>
+	<name>鲁道夫 “猎手”
+解锁条件：找到并击杀 3 只白化鹿。
+“传说”难度。</name>
+</text>
+
+<text>
+	<id>184</id>
+	<name>塔曼 “守卫”
+初始装备：警帽、奥廖尔夹克、奥廖尔裤、AKs-74u、能量饮料。
+已解锁特长：神枪手（2 级）、子弹农夫</name>
+</text>
+
+<text>
+	<id>185</id>
+	<name>塔曼 “守卫”
+解锁条件：用悍马车载机枪击杀“坦克”。
+“传说”难度。</name>
+</text>
+
+<text>
+	<id>186</id>
+	<name>达里娅 “科学家”
+初始装备：工装裤、围裙、衬衫、四环素、静脉输液包、维生素、肾上腺素、绷带 ×3。
+已解锁特长：红+（2 级）、疾跑者</name>
+</text>
+
+<text>
+	<id>187</id>
+	<name>达里娅 “科学家”
+解锁条件：抵达第 5 座岛屿。
+“传说”难度。</name>
+</text>
+
+<text>
+	<id>188</id>
+	<name>磨利（+25%）</name>
+</text>
+
+<text>
+	<id>189</id>
+	<name>沙漠之鹰
+解锁条件：在一次游戏内同时携带整套牛仔装备（牛仔帽、衬衫、马格南）。
+“普通”或更高难度。
+当前进度：</name>
+</text>
+
+<text>
+	<id>190</id>
+	<name>沙漠之鹰
+已解锁。
+出现地点：地下地堡、枪店。</name>
+</text>
+
+<text>
+	<id>191</id>
+	<name>武士刀
+解锁条件：用刀具击杀 100 只僵尸。
+“传说”难度。
+当前进度：</name>
+</text>
+
+<text>
+	<id>192</id>
+	<name>武士刀
+已解锁。
+出现地点：枪店。</name>
+</text>
+
+<text>
+	<id>193</id>
+	<name>武器已磨利。</name>
+</text>
+
+<text>
+	<id>194</id>
+	<name>这把武器无法磨利。</name>
+</text>
+
+<text>
+	<id>195</id>
+	<name>制作绳子</name>
+</text>
+
+<text>
+	<id>196</id>
+	<name>这需要 3 块碎布。</name>
+</text>
+
+<text>
+	<id>197</id>
+	<name>跟我来！</name>
+</text>
+
+<text>
+	<id>198</id>
+	<name>待在这里！</name>
+</text>
+
+<text>
+	<id>199</id>
+	<name>走开！</name>
+</text>
+
+<text>
+	<id>200</id>
+	<name>你好，幸存者。</name>
+</text>
+
+<text>
+	<id>201</id>
+	<name>我在这里做不了</name>
+</text>
+
+<text>
+	<id>202</id>
+	<name>附近有敌人！</name>
+</text>
+
+<text>
+	<id>203</id>
+	<name>我可以试着开车跳到那边。</name>
+</text>
+
+<text>
+	<id>204</id>
+	<name>准备好跳桥了吗？将没有回头路，前方充满危险。</name>
+</text>
+
+<text>
+	<id>205</id>
+	<name>你好</name>
+</text>
+
+<text>
+	<id>206</id>
+	<name>嘿，能帮帮我们吗？</name>
+</text>
+
+<text>
+	<id>207</id>
+	<name>别开枪，我们是友善的</name>
+</text>
+
+<text>
+	<id>208</id>
+	<name>幸会</name>
+</text>
+
+<text>
+	<id>209</id>
+	<name>谢谢！</name>
+</text>
+
+<text>
+	<id>210</id>
+	<name>嗨！我们听说过你！你一直在帮助有困难的人，我们想帮助你！收下这个：</name>
+</text>
+
+<text>
+	<id>611</id>
+	<name>我学到了一些好技能！</name>
+</text>
+
+<text>
+	<id>612</id>
+	<name>阅读</name>
+</text>
+
+<text>
+	<id>613</id>
+	<name>我感觉自己像是不死之身，但其实不是。</name>
+</text>
+
+<text>
+	<id>614</id>
+	<name> 分钟。</name>
+</text>
+
+<text>
+	<id>615</id>
+	<name>制作物资箱</name>
+</text>
+
+<text>
+	<id>616</id>
+	<name>放置物资箱</name>
+</text>
+
+<text>
+	<id>617</id>
+	<name>• 饥饿和口渴速度缓慢
+• 天气温暖
+• NPC 对玩家的伤害降低
+</name>
+</text>
+
+<text>
+	<id>618</id>
+	<name>• 饥饿和口渴速度中等
+• 天气正常
+• NPC 对玩家的伤害普通
+</name>
+</text>
+
+<text>
+	<id>619</id>
+	<name>• 饥饿和口渴速度快
+• 天气寒冷
+• NPC 对玩家的伤害高
+• 某些地点僵尸稍多
+</name>
+</text>
+
+<text>
+	<id>620</id>
+	<name>• 饥饿和口渴速度快
+• 天气寒冷
+• NPC 对玩家的伤害高
+• 某些地点僵尸稍多
+• 未探索区域在小地图上隐藏
+</name>
+</text>
+
+<text>
+	<id>621</id>
+	<name>开始
+</name>
+</text>
+
+<text>
+	<id>622</id>
+	<name>准备好前往第 5 座岛屿了吗？将没有回头路。
+</name>
+</text>
+
+<text>
+	<id>623</id>
+	<name>准备好前往第 5 座岛屿了吗？将没有回头路。
+</name>
+</text>
+
+<text>
+	<id>624</id>
+	<name>鱼竿损坏了。
+</name>
+</text>
+
+<text>
+	<id>625</id>
+	<name>制作燃烧瓶</name>
+</text>
+
+<text>
+	<id>626</id>
+	<name>燃烧瓶和绳子</name>
+</text>
+
+<text>
+	<id>627</id>
+	<name>碎布 ×3 = 绳子</name>
+</text>
+
+<text>
+	<id>628</id>
+	<name>威士忌 + 信号棒 = 燃烧瓶</name>
+</text>
+
+<text>
+	<id>629</id>
+	<name>物资储存箱</name>
+</text>
+
+<text>
+	<id>630</id>
+	<name>麻袋 + 麻袋 = 帆布</name>
+</text>
+
+<text>
+	<id>631</id>
+	<name>帆布 + 木堆 = 建造物资箱。
+存放在物资箱中的物资是安全的。敌人发现后可以摧毁它。
+</name>
+</text>
+
+<text>
+	<id>632</id>
+	<name>迈克 “设计师”
+解锁条件：抵达未知岛屿。
+“传说”难度。
+</name>
+</text>
+
+<text>
+	<id>633</id>
+	<name>迈克 “设计师”
+初始装备：炫酷连帽衫、工装裤、剑、Vector、能量饮料 ×4、.45 ACP 子弹 ×60。
+已解锁特长：神枪手、重拳手、疾跑者、侦察兵。</name>
+</text>
+
+<text>
+	<id>634</id>
+	<name>创可贴
+解锁条件：用以下角色之一通关游戏：埃米利奥 “医生”、比利 “红”、戴夫 “拳击手”。</name>
+</text>
+
+<text>
+	<id>635</id>
+	<name>打火机
+解锁条件：用以下角色之一通关游戏：李 “疯子”、谢尔盖 “斯拉夫”、约翰 “骑手”。</name>
+</text>
+
+<text>
+	<id>636</id>
+	<name>烟雾弹
+解锁条件：用以下角色之一通关游戏：甘佐 “龙”、汤姆 “幸存者”、加里 “老兵”。</name>
+</text>
+
+<text>
+	<id>637</id>
+	<name>激光瞄准器
+解锁条件：用以下角色之一通关游戏：凯特 “游客”、茉莉 “伐木工”、艾卡 “线人”。</name>
+</text>
+
+<text>
+	<id>638</id>
+	<name>XXX
+解锁条件：用以下角色之一通关游戏：泽维尔 “飞行员”、鲁道夫 “猎手”、塔曼 “守卫”、达里娅 “科学家”。</name>
+</text>
+
+<text>
+	<id>639</id>
+	<name>...收到！我们听见你了！一天之内到达你的位置，坚持住！...</name>
+</text>
+
+<text>
+	<id>640</id>
+	<name>尝试用收音机联系某人？</name>
+</text>
+
+<text>
+	<id>641</id>
+	<name>烟雾</name>
+</text>
+
+<text>
+	<id>642</id>
+	<name>治疗</name>
+</text>
+
+<text>
+	<id>643</id>
+	<name>施肥</name>
+</text>
+
+<text>
+	<id>644</id>
+	<name>物品</name>
+</text>
+
+<text>
+	<id>645</id>
+	<name>创可贴
+出现地点：医院、城市建筑</name>
+</text>
+
+<text>
+	<id>646</id>
+	<name>打火机
+出现地点：消防站、车库。</name>
+</text>
+
+<text>
+	<id>647</id>
+	<name>烟雾弹
+出现地点：地下地堡、军事基地。</name>
+</text>
+
+<text>
+	<id>648</id>
+	<name>激光瞄准器
+出现地点：地下地堡、军事基地。</name>
+</text>
+
+<text>
+	<id>649</id>
+	<name>军官钥匙卡
+出现地点：由感染者军官携带。</name>
+</text>
+
+<text>
+	<id>650</id>
+	<name>这需要篝火、火柴或打火机。</name>
+</text>
+
+<text>
+	<id>651</id>
+	<name>我睡不着，我可以跳过救援直升机。</name>
+</text>
+
+<text>
+	<id>652</id>
+	<name>我进不了地堡，我可以跳过救援直升机。</name>
+</text>
+
+<text>
+	<id>653</id>
+	<name>嘿！我是鲍里斯，欢迎登机！</name>
+</text>
+
+<text>
+	<id>654</id>
+	<name>娜迪亚，往东飞，去 4316 信号处。</name>
+</text>
+
+<text>
+	<id>655</id>
+	<name>你成功逃脱了。</name>
+</text>
+
+<text>
+	<id>656</id>
+	<name>我需要回到收音机旁！</name>
+</text>
+
+<text>
+	<id>657</id>
+	<name>未知岛屿 #</name>
+</text>
+
+<text>
+	<id>658</id>
+	<name>准备好使用电梯了吗？没有回头路。</name>
+</text>
+
+<text>
+	<id>659</id>
+	<name>这扇门需要“军官钥匙卡”。</name>
+</text>
+
+<text>
+	<id>660</id>
+	<name>我需要一株植物才行。</name>
+</text>
+
+<text>
+	<id>661</id>
+	<name>键盘（WASD）</name>
+</text>
+
+<text>
+	<id>662</id>
+	<name>谢谢你</name>
+</text>
+
+</list>

@@ -1,0 +1,45 @@
+# ============================================================================
+#  .gitignore —— Minidayz-WebRTC
+#  目标：只提交"源码 + 工程配置 + web 资源"，不提交依赖与构建产物
+#       （推到 GitHub 走云构建时，体积从 1GB+ 降到 ~60MB）
+# ============================================================================
+
+# 依赖
+node_modules/
+.pnpm-store/
+
+# Android 构建产物 / 本机配置
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/capacitor-cordova-android-plugins/src/main/libs/
+*.apk
+*.aab
+
+# iOS 构建产物 / 依赖
+ios/App/Pods/
+ios/App/build/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/Podfile.lock
+ios/App/output/
+*.ipa
+*.xcarchive
+
+# 打包好的成品（体积大，单独分发，不入库）
+dist/
+
+# 工具链日志
+tools/last-build.log
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

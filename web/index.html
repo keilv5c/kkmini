@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<title>Mini DAYZ</title>
+	
+	<!-- Standardised web app manifest -->
+	<link rel="manifest" href="appmanifest.json" />
+	
+	<!-- Allow fullscreen mode on iOS devices. (These are Apple specific meta tags.) -->
+	<!-- viewport-fit=cover：让画面铺到刘海/圆角区域，配合 App 内隐藏状态栏实现全屏 -->
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui, viewport-fit=cover" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<link rel="apple-touch-icon" sizes="256x256" href="icon-256.png" />
+	<meta name="HandheldFriendly" content="true" />
+	
+	<!-- Chrome for Android web app tags -->
+	<meta name="mobile-web-app-capable" content="yes" />
+	<link rel="shortcut icon" sizes="256x256" href="icon-256.png" />
+
+    <!-- All margins and padding must be zero for the canvas to fill the screen. -->
+	<style type="text/css">
+		* {
+			padding: 0;
+			margin: 0;
+		}
+		html, body {
+			background: #000;
+			color: #fff;
+			overflow: hidden;
+			touch-action: none;
+			-ms-touch-action: none;
+		}
+		canvas {
+			touch-action-delay: none;
+			touch-action: none;
+			-ms-touch-action: none;
+		}
+    </style>
+	
+
+</head> 
+ 
+<body> 
+	<div id="fb-root"></div>
+	
+	<script>
+	// Issue a warning if trying to preview an exported project on disk.
+	(function(){
+		// Check for running exported on file protocol
+		if (window.location.protocol.substr(0, 4) === "file")
+		{
+			alert("欢迎！这是 1.2-2.3.X（中/俄服务器）的多人联机测试版。这是 BETA 版本——可能存在错误和缺陷。PvP 目前处于关闭状态，游戏内适用其他通用规则（仅限 PvE 测试）。加入房间前请先输入用户名。请勿尝试添加 ToolkitMod 或任何其他作弊插件。注意：服务器仅在 Wi-Fi 下运行，移动网络连接可能不稳定，但可以运行。欢迎来到 minidayz！MPMod 作者和所有者：@Alex @MinidayzSTART。联合开发、协助、改进与设计：@Civert0 https://github.com/DarrenB276/");
+		}
+	})();
+	</script>
+	
+	<!-- The canvas must be inside a div called c2canvasdiv -->
+	<div id="c2canvasdiv">
+	
+		<!-- The canvas the project will render to.  If you change its ID, don't forget to change the
+		ID the runtime looks for in the jQuery events above (ready() and cr_sizeCanvas()). -->
+		<canvas id="c2canvas" width="1024" height="768">
+			<!-- This text is displayed if the visitor's browser does not support HTML5.
+			You can change it, but it is a good idea to link to a description of a browser
+			and provide some links to download some popular HTML5-compatible browsers. -->
+			<h1>Your browser does not appear to support HTML5.  Try upgrading your browser to the latest version.  <a href="http://www.whatbrowser.org">What is a browser?</a>
+			<br/><br/><a href="http://www.microsoft.com/windows/internet-explorer/default.aspx">Microsoft Internet Explorer</a><br/>
+			<a href="http://www.mozilla.com/firefox/">Mozilla Firefox</a><br/>
+			<a href="http://www.google.com/chrome/">Google Chrome</a><br/>
+			<a href="http://www.apple.com/safari/download/">Apple Safari</a></h1>
+		</canvas>
+		
+	</div>
+	
+	<!-- Pages load faster with scripts at the bottom -->
+	
+	<!-- Construct 2 exported games require jQuery. -->
+	<script src="jquery-3.4.1.min.js"></script>
+
+
+	
+    <!-- The runtime script.  You can rename it, but don't forget to rename the reference here as well.
+    This file will have been minified and obfuscated if you enabled "Minify script" during export. -->
+	<script src="c2runtime.js"></script>
+
+    <script>
+		// Start the Construct 2 project running on window load.
+		jQuery(document).ready(function ()
+		{			
+			// Create new runtime using the c2canvas
+			cr_createRuntime("c2canvas");
+		});
+		
+		// Pause and resume on page becoming visible/invisible
+		function onVisibilityChanged() {
+			if (document.hidden || document.mozHidden || document.webkitHidden || document.msHidden)
+				cr_setSuspended(true);
+			else
+				cr_setSuspended(false);
+		};
+		
+		document.addEventListener("visibilitychange", onVisibilityChanged, false);
+		document.addEventListener("mozvisibilitychange", onVisibilityChanged, false);
+		document.addEventListener("webkitvisibilitychange", onVisibilityChanged, false);
+		document.addEventListener("msvisibilitychange", onVisibilityChanged, false);
+		
+		function OnRegisterSWError(e)
+		{
+			console.warn("Failed to register service worker: ", e);
+		};
+		
+		// Runtime calls this global method when ready to start caching (i.e. after startup).
+		// This registers the service worker which caches resources for offline support.
+		window.C2_RegisterSW = function C2_RegisterSW()
+		{
+			if (!navigator.serviceWorker)
+				return;		// no SW support, ignore call
+			
+			try {
+				navigator.serviceWorker.register("sw.js", { scope: "./" })
+				.then(function (reg)
+				{
+					console.log("Registered service worker on " + reg.scope);
+				})
+				.catch(OnRegisterSWError);
+			}
+			catch (e)
+			{
+				OnRegisterSWError(e);
+			}
+		};
+    </script>
+    <!-- logger.js missing from build - was 404ing on every boot. Restore the file to re-enable. -->
+    <script src="mp_worldseed.js"></script>
+    <script src="mp_authority.js"></script>
+<script src="mp_join.js"></script>
+<script src="mp_worldstate.js"></script>
+<script src="mp_entities.js"></script>
+<script src="mp_players.js"></script>
+<script src="mp_interactions.js"></script>
+<script src="zoom.js"></script>
+
+    <!-- ===================================================================
+         双模式零服务器 WebRTC 联机（替代 PeerJS + 信令服务器）
+         注意加载顺序：
+           pako  ->  mdz_core.js 依赖它压缩握手串
+           mdz_core -> mdz_p2p.js 依赖它做打包/分块/分流
+           mdz_p2p  -> 必须提供 window.Peer 之后，lan_bridge.js 才能工作
+         lan_bridge.js 与 mp_*.js 保持与原版逐字节一致，一行都没有改。
+         html5-qrcode 不在这里加载：只有网页端真正要扫码时才按需注入。
+         =================================================================== -->
+    <script src="vendor/pako.min.js"></script>
+    <script src="vendor/qrcode.min.js"></script>
+    <script src="mdz_core.js"></script>
+    <script src="mdz_p2p.js"></script>
+    <script>MDZP2P.install(window);</script>
+    <script src="lan_bridge.js"></script>
+    <script src="mdz_ui.js"></script>
+
+    <script>
+      /* ===================================================================
+         构建标记：控制台里看到这一行，才说明你打开的是新页面。
+         如果控制台没有 "[MDZ] build …"，那这个页面是被 Service Worker
+         或浏览器 HTTP 缓存住的旧 index.html（旧页面根本没有联机面板）。
+         =================================================================== */
+      window.MDZ_BUILD = 'mdz-webrtc-web-1';
+      console.log('%c[MDZ] build ' + window.MDZ_BUILD + ' 已加载（联机面板应出现在右上角）',
+        'color:#3fb950;font-weight:bold');
+
+      /* ===================================================================
+         开发期禁用离线缓存。
+         原因：sw.js 会把 index.html 一起缓存，改完代码刷新还是旧页面，
+         表现就是"联机面板没有、扫码图标找不到"。这里直接禁用注册，
+         并把历史上注册过的 Service Worker 注销掉。
+         正式发布如果想保留离线单机，把这段删掉即可。
+         =================================================================== */
+      (function () {
+        try {
+          window.C2_RegisterSW = function () {
+            console.log('[MDZ] Service Worker 注册已禁用（开发配置，避免缓存旧页面）');
+          };
+          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              var n = 0;
+              for (var i = 0; i < regs.length; i++) { regs[i].unregister(); n++; }
+              if (n) console.log('[MDZ] 已注销 ' + n + ' 个旧 Service Worker，请再刷新一次页面');
+            }).catch(function () {});
+          }
+        } catch (e) { /* 忽略 */ }
+      })();
+    </script>
+    <!-- drop.js missing from build - was 404ing on every boot. Restore the file to re-enable. -->
+</body> 
+</html>

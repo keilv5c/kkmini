@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Mini DAYZ WebRTC 自测页</title>
+<style>
+  body { background:#0d1117; color:#e6edf3; font:14px/1.6 "Microsoft YaHei",system-ui,sans-serif; margin:0; padding:18px 22px; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .sub { opacity:.75; font-size:13px; margin-bottom:14px; }
+  button { background:#1f6feb; color:#fff; border:0; border-radius:6px; padding:9px 16px; font-size:14px; cursor:pointer; margin-right:8px; }
+  button.sec { background:#30363d; }
+  button:disabled { opacity:.5; cursor:default; }
+  #log { background:#010409; border:1px solid #21262d; border-radius:8px; padding:10px 12px; margin-top:14px;
+         font:12px/1.55 Consolas,monospace; white-space:pre-wrap; max-height:52vh; overflow:auto; }
+  .pass { color:#3fb950; } .fail { color:#f85149; } .info { color:#79c0ff; } .warn { color:#d29922; }
+  .row { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+  .card { background:#161b22; border:1px solid #21262d; border-radius:8px; padding:10px 12px; }
+  #qr { background:#fff; border-radius:6px; }
+  code { background:#161b22; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+  <h1>Mini DAYZ WebRTC —— 单机自测页</h1>
+  <div class="sub">
+    在同一个页面里开两个 RTCPeerConnection，跑完整的"模式A/B 握手 → 双通道 → 收发游戏包"流程。
+    不需要第二台设备，也不需要游戏本体（只依赖 <code>mdz_core.js</code> + <code>mdz_p2p.js</code>）。
+  </div>
+
+  <div>
+    <button id="run">运行自测（模式A 扫码流程）</button>
+    <button id="runB" class="sec">运行自测（模式B 文本流程·带 STUN）</button>
+    <button id="qrBtn" class="sec">生成一张真二维码</button>
+    <button id="clr" class="sec">清空</button>
+  </div>
+
+  <div class="row" style="margin-top:14px">
+    <div class="card" style="min-width:260px">
+      <div style="opacity:.8;font-size:12.5px">二维码渲染验证（可用手机扫一下看看能不能识别）</div>
+      <canvas id="qr" width="260" height="260" style="margin-top:8px"></canvas>
+      <div id="qrinfo" style="font-size:12px;opacity:.8;margin-top:6px"></div>
+    </div>
+    <div style="flex:1;min-width:320px">
+      <div id="log"></div>
+    </div>
+  </div>
+
+<script src="vendor/pako.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
+<script src="mdz_core.js"></script>
+<script src="mdz_p2p.js"></script>
+<script>MDZP2P.install(window);</script>
+<script>
+(function () {
+  var logBox = document.getElementById('log');
+  var pass = 0, fail = 0;
+  function line(t, cls) {
+    var d = document.createElement('div');
+    if (cls) d.className = cls;
+    d.textContent = t;
+    logBox.appendChild(d);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+  function ok(name, cond, extra) {
+    if (cond) { pass++; line('  PASS  ' + name + (extra ? '   (' + extra + ')' : ''), 'pass'); }
+    else { fail++; line('  FAIL  ' + name + (extra ? '   (' + extra + ')' : ''), 'fail'); }
+  }
+  function head(t) { line(''); line('=== ' + t + ' ===', 'info'); }
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+  /** 完整握手：房主出 Offer -> 客机出 Answer -> 房主应用（两端都在本页里） */
+  async function handshake(mode) {
+    var h = await MDZP2P.hostBegin({ mode: mode });          // 房主：生成 Offer
+    await MDZP2P.clientBegin({ mode: mode });                // 客机：就绪，等房主握手串
+    var ans = await MDZP2P.clientAcceptHost(h.payload);      // 客机：吃 Offer 出 Answer
+    await MDZP2P.hostAcceptPeer(ans.payload);                // 房主：吃 Answer，开始打洞
+    var hs = MDZP2P.currentHost(), cs = MDZP2P.currentClient();
+    await hs.waitOpen(20000);
+    return { h: h, ans: ans, host: hs, client: cs };
+  }
+
+  async function run(mode) {
+    MDZP2P._reset();
+    pass = 0; fail = 0;
+    logBox.innerHTML = '';
+    var label = mode === 'qr' ? '模式A（扫码 / 无 STUN）' : '模式B（文本 / 带 STUN）';
+    line('Mini DAYZ WebRTC 自测 —— ' + label, 'info');
+    line('UA: ' + navigator.userAgent.slice(0, 90));
+    line('安全上下文: ' + (window.isSecureContext ? '是（摄像头可用）' : '否（摄像头不可用，网页需 https 或 localhost）'));
+
+    var r = null;
+    head('1. 握手');
+    try {
+      r = await handshake(mode);
+      ok('房主生成 Offer 握手串', !!r.h.payload, r.h.fit.chars + ' 字符 / ' + r.h.fit.bytes + ' 字节');
+      ok('客机生成 Answer 握手串', !!r.ans.payload, r.ans.fit.chars + ' 字符');
+      ok('主通道已打开', r.host.open === true);
+      for (var i = 0; i < 40 && !(r.host.chFast && r.host.chFast.readyState === 'open'); i++) await sleep(100);
+      ok('副通道也已打开', !!(r.host.chFast && r.host.chFast.readyState === 'open'));
+      var st = r.host.stats();
+      ok('ICE 候选数 >= 1', st.iceStats && st.iceStats.total >= 1,
+        'total=' + (st.iceStats && st.iceStats.total) + ' 内网=' + (st.iceStats && st.iceStats.lan) +
+        ' mDNS=' + (st.iceStats && st.iceStats.mdns) + ' srflx=' + (st.iceStats && st.iceStats.srflx));
+      ok('ICE 连接状态 = connected', st.ice === 'connected' || st.conn === 'connected', 'ice=' + st.ice + ' conn=' + st.conn);
+      if (st.iceStats && st.iceStats.needsUnobfuscation) {
+        line('  提示：当前只有 mDNS 候选（.local）。同网 Chrome↔Chrome 一般也能连；连不上时可勾选"取消 mDNS 混淆"再试。', 'warn');
+      }
+    } catch (e) {
+      fail++; line('  FAIL  握手异常: ' + e.message, 'fail');
+    }
+
+    if (r) {
+      head('2. 收发');
+      var inbox = [];
+      r.client.attachDataHandler(function (m) { inbox.push(m); });
+      r.host.send({ type: 'chat', msg: 'hello' });
+      await sleep(400);
+      ok('客机收到普通消息', inbox.some(function (m) { return m.type === 'chat' && m.msg === 'hello'; }));
+
+      inbox.length = 0;
+      r.host.send({ type: 'player_state', x: 1, seq: 9 });
+      for (var j = 0; j < 30 && !inbox.length; j++) await sleep(100);
+      ok('客机收到 player_state（无序副通道）', inbox.some(function (m) { return m.type === 'player_state' && m.seq === 9; }));
+
+      inbox.length = 0;
+      r.host.send({ type: 'map_data', blob: 'X'.repeat(60000), tail: '结束😀' });
+      for (var k = 0; k < 50 && !inbox.some(function (m) { return m.type === 'map_data'; }); k++) await sleep(100);
+      var big = inbox.filter(function (m) { return m.type === 'map_data'; })[0];
+      ok('60000 字符大消息分块重组完整', !!big && big.blob.length === 60000 && big.tail === '结束😀',
+        big ? big.blob.length + ' 字符' : '未收到');
+
+      ok('conn.bufferSize 是数字（游戏背压契约）', typeof r.host.bufferSize() === 'number', '=' + r.host.bufferSize());
+
+      head('3. 模拟 lan_bridge 的调用顺序（Peer 垫片契约）');
+      // 完全照抄 lan_bridge.js 的做法：new Peer(...) 之后拿 connection / connect()
+      var hostPeer = new window.Peer('selftest-room', { host: 'x', port: 9000, path: '/myapp' });
+      var hostConn = null;
+      hostPeer.on('connection', function (c) { hostConn = c; });
+      var clientPeer = new window.Peer({ host: 'x', port: 9000, path: '/myapp' });
+      var clientConn = null;
+      clientPeer.on('open', function () { clientConn = clientPeer.connect('selftest-room'); });
+      for (var w = 0; w < 60 && !(hostConn && clientConn); w++) await sleep(100);
+      ok('房主 new Peer(id) 拿到 connection', !!hostConn);
+      ok('客机 new Peer(opts) -> connect() 拿到 conn', !!clientConn);
+
+      var recv = [];
+      if (hostConn && clientConn) {
+        hostConn.on('data', function (m) { recv.push(m); });
+        for (var q2 = 0; q2 < 60 && !clientConn.open; q2++) await sleep(100);
+        ok('客机 conn.open === true', clientConn.open === true);
+        ok('conn.bufferSize 可读（游戏背压契约）', typeof clientConn.bufferSize === 'number', '=' + clientConn.bufferSize);
+        clientConn.send({ type: 'visual_ready' });
+        clientConn.send({ type: 'mpj_begin', id: 1, total: 2, len: 18000 });
+        clientConn.send({ type: 'mpj_chunk', id: 1, i: 0, s: 'C'.repeat(12000) });
+        clientConn.send({ type: 'mpj_end', id: 1, len: 18000 });
+        for (var q = 0; q < 60 && recv.length < 4; q++) await sleep(100);
+        ok('4 个游戏包按序到达', recv.map(function (m) { return m.type; }).join(',') === 'visual_ready,mpj_begin,mpj_chunk,mpj_end',
+          '收到：' + recv.map(function (m) { return m.type; }).join(','));
+        ok('12000 字节分块内容完整', !!recv[2] && recv[2].s.length === 12000);
+      }
+    }
+
+    head('结果');
+    line('  ' + pass + ' 通过 / ' + fail + ' 失败', fail === 0 ? 'pass' : 'fail');
+    if (fail === 0) line('  ✅ 传输层自测通过：可以把 index.html 打开，用两台设备实测联机了。', 'pass');
+    MDZP2P._reset();
+  }
+
+  document.getElementById('run').onclick = function () { run('qr').catch(function (e) { line('异常: ' + e.message, 'fail'); }); };
+  document.getElementById('runB').onclick = function () { run('text').catch(function (e) { line('异常: ' + e.message, 'fail'); }); };
+  document.getElementById('clr').onclick = function () { logBox.innerHTML = ''; };
+
+  document.getElementById('qrBtn').onclick = async function () {
+    try {
+      var h = await MDZP2P.hostBegin({ mode: 'qr' });
+      var fit = h.fit;
+      QRCode.toCanvas(document.getElementById('qr'), h.payload, { errorCorrectionLevel: fit.bytes > 1800 ? 'L' : 'M', margin: 1, width: 260 }, function (err) {
+        document.getElementById('qrinfo').textContent = err ? ('生成失败: ' + err.message)
+          : (fit.chars + ' 字符 / ' + fit.bytes + ' 字节 —— ' + fit.hint);
+      });
+      line('已生成一张真实 Offer 二维码，可用手机相机扫一下验证可识别性。', 'info');
+      MDZP2P._reset();
+    } catch (e) { line('生成二维码失败: ' + e.message, 'fail'); }
+  };
+})();
+</script>
+</body>
+</html>

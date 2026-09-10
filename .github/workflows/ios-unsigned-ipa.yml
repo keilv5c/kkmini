@@ -1,0 +1,92 @@
+# ============================================================================
+#  Build iOS IPA (unsigned) —— 用 GitHub 的 macOS 机器编译出未签名 IPA
+# ----------------------------------------------------------------------------
+#  用途：你没有 Mac 时也能拿到 .ipa；之后再在 Windows 上用 Sideloadly/AltStore
+#        用自己的 Apple ID 签名安装（免费账号 7 天有效，付费账号 1 年）。
+#
+#  用法：推到 GitHub 后，Actions → 本工作流 → Run workflow → 下载 Artifacts。
+#  说明：CocoaPods 版的 iOS 工程（扫码插件只有 podspec，SPM 会被跳过），
+#        GitHub 的 macOS runner 自带 CocoaPods，所以 pod install 能跑通。
+# ============================================================================
+name: Build iOS IPA (unsigned)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'web/**'
+      - 'ios/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - '.github/workflows/ios-unsigned-ipa.yml'
+
+jobs:
+  build-ipa:
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Show toolchain versions
+        run: |
+          node -v
+          npm -v
+          xcodebuild -version
+          pod --version
+
+      - name: Install npm deps
+        run: npm ci
+
+      - name: Sync web assets into iOS project
+        run: npx cap sync ios
+
+      - name: Pod install (显式再跑一次，便于日志定位)
+        working-directory: ios/App
+        run: pod install --repo-update
+
+      - name: Archive (unsigned)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            archive | tail -n 60
+
+      - name: Package into .ipa
+        run: |
+          set -e
+          APP_PATH="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          test -d "$APP_PATH" || { echo "没找到 App.app，归档失败"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -qry Minidayz-unsigned.ipa Payload
+          ls -lh Minidayz-unsigned.ipa
+          echo "--- 校验包内是否含我们的新代码 ---"
+          unzip -l Minidayz-unsigned.ipa | grep -E 'mdz_(p2p|ui|core)\.js|lan_bridge\.js' || true
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minidayz-unsigned-ipa
+          path: ${{ runner.temp }}/Minidayz-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30

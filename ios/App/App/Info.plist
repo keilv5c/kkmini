@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>Mini DAYZ 联机版</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+
+	<!-- ================= Mini DAYZ 联机版：iOS 权限与显示 ================= -->
+
+	<!-- 模式A 扫码要用摄像头（原生 MLKit 扫码 + 取消 mDNS 混淆时的 getUserMedia） -->
+	<key>NSCameraUsageDescription</key>
+	<string>用于扫描房间二维码以建立局域网联机（只读画面，不录像、不上传）</string>
+
+	<!-- iOS 14+ 关键项：WebRTC 收集内网候选、与同一 Wi-Fi 的伙伴直连会触发"本地网络"权限，
+	     不声明这一项，局域网 P2P 会连不上（系统也不会弹权限询问） -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于在同一 Wi-Fi 下与联机伙伴建立点对点直连（不经过任何服务器）</string>
+	<!-- WebRTC 的 mDNS 候选（xxx.local）解析依赖 Bonjour -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_webrtc._tcp</string>
+		<string>_webrtc._udp</string>
+	</array>
+
+	<!-- 横屏锁定 + 全屏（游戏是 1024x768 的横屏画面） -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>UIStatusBarHidden</key>
+	<true/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+
+	<!-- 未使用自定义加密，避免每次上传都要回答出口合规问题 -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+      <key>UIWindowSceneSessionRoleApplication</key>
+      <array>
+        <dict>
+            <key>UISceneConfigurationName</key>
+            <string>Default Configuration</string>
+            <key>UISceneDelegateClassName</key>
+            <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            <key>UISceneStoryboardFile</key>
+            <string>Main</string>
+        </dict>
+      </array>
+    </dict>
+	</dict>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+</dict>
+</plist>
