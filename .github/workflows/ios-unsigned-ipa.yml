@@ -89,6 +89,27 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # macos-14 镜像的**默认** Xcode 是 15.4，而 MLKit 8.x 硬性要求 Xcode >= 16.0.0
+      # （ML Kit 官方发布说明 2025-03-25：GoogleMLKit 8.0.0 / MLKitCommon 13.0.0，
+      #   "On iOS, raised the minimum supported version of Xcode to 16.0.0."）
+      # 镜像里 16.1 / 16.2 都装了，只是没被选中；不选的话 pod install 会成功、
+      # 一到 xcodebuild archive 编译期就失败（23 秒左右），报错还很隐晦。
+      - name: 选择 Xcode（MLKit 8.x 要求 >= 16）
+        run: |
+          echo "--- 镜像里可用的 Xcode ---"
+          ls -d /Applications/Xcode*.app || true
+          LATEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)
+          echo "选中: $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
+          xcodebuild -version
+          XV=$(xcodebuild -version | head -n 1 | awk '{print $2}')
+          MAJOR=${XV%%.*}
+          if [ "$MAJOR" -lt 16 ]; then
+            echo "::error::当前 Xcode 是 $XV，但 MLKit 8.x 要求 >= 16.0.0，编译期必定失败（镜像里应有 Xcode_16.x.app）"
+            exit 1
+          fi
+          echo "Xcode $XV 满足 MLKit 8.x 的要求 ✅"
+
       - name: Toolchain versions
         run: |
           node -v
@@ -207,18 +228,35 @@ jobs:
         working-directory: ios/App
         run: |
           set -o pipefail
-          xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ENABLE_USER_SCRIPT_SANDBOXING=NO \
-            archive | tail -n 80
+          echo "使用 Xcode: $(xcodebuild -version | head -n 1)"
+          LOG="$RUNNER_TEMP/archive.log"
+          if xcodebuild \
+               -workspace App.xcworkspace \
+               -scheme App \
+               -configuration Release \
+               -sdk iphoneos \
+               -destination 'generic/platform=iOS' \
+               -archivePath "$RUNNER_TEMP/App.xcarchive" \
+               CODE_SIGN_IDENTITY="" \
+               CODE_SIGNING_REQUIRED=NO \
+               CODE_SIGNING_ALLOWED=NO \
+               ENABLE_USER_SCRIPT_SANDBOXING=NO \
+               archive > "$LOG" 2>&1; then
+            echo "Archive 成功 ✅"
+            tail -n 15 "$LOG"
+          else
+            echo "==================== Archive 失败 ===================="
+            echo "--- 最后 60 行 ---"
+            tail -n 60 "$LOG"
+            # 关键：把真正的报错用 ::error:: 抛出来。公开仓库的 check-run annotations
+            # 可以匿名读取，这样即使拿不到作业日志（API 要写权限）也能看到报错原文。
+            echo "--- 关键报错（同时写入 check annotations）---"
+            grep -n -i -E "error:|fatal error|ARCHIVE FAILED|requires Xcode|newer version of the Swift compiler" "$LOG" \
+              | head -n 8 | while IFS= read -r line; do
+                  echo "::error::$(printf '%s' "$line" | sed 's/%/%25/g')"
+                done || true
+            exit 1
+          fi
 
       - name: 打包成 .ipa 并校验内容
         run: |

@@ -96,11 +96,19 @@ xcodebuild -exportArchive -archivePath /tmp/App.xcarchive \
    付费开发者账号（$99/年）可以 1 年有效，并能用 TestFlight 分发。
    想省掉每周重签可以用 **AltStore**（自动后台刷新）。
 
-> 云构建里已经处理掉三个经典 CI 坑：
+> 云构建里已经处理掉五个经典 CI 坑（前四个都真实踩过）：
 > ① Capacitor 模板**没有共享 scheme** → 仓库里补了 `ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme`
 > ② `capacitor.config.ts` 需要 TypeScript，但 `node-datachannel` 是原生模块在 CI 上又慢又容易挂 →
 >    工作流只装生产依赖 + 单独装 typescript
 > ③ macOS runner 上 CocoaPods 缺失 → 工作流里自动 `gem install cocoapods`
+> ④ **Podfile 会被 `cap sync/update` 按正则重写**：CLI 用 `/(def capacitor_pods)[\s\S]+?(\nend)/`
+>    定位代码块，注释里一旦先出现那串触发字符，`platform :ios,'15.5'` / `use_frameworks!` /
+>    `install!` / 定义行会被一起吃掉，pod install 1 秒内报 `undefined method 'capacitor_pods'`
+>    （表现为"2 秒红 + 零下载日志"）。所以 platform 放 Podfile 第一行、注释里不写那串字符，
+>    并用 `node tools/check-podfile.js` 体检（工作流里已加校验步骤）
+> ⑤ **MLKit 8.x 要求 Xcode ≥ 16，而 `macos-14` 默认是 15.4** → pod install 正常但
+>    `xcodebuild archive` 编译期必失败（约 23 秒）。工作流里会 `ls -d /Applications/Xcode*.app`
+>    选最新那个再 `xcode-select -s`，并硬校验主版本 ≥ 16
 
 ---
 

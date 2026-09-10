@@ -123,6 +123,35 @@ section('4. Podfile 与 Capacitor CLI 正则的兼容性（CI 连红三次的那
   }
 }
 
+/* --------- 5. 工作流必须选 Xcode 16+（MLKit 8.x 硬要求，macos-14 默认只有 15.4） */
+section('5. 工作流选对 Xcode（MLKit 8.x 要求 ≥ 16，否则 pod install 成功但编译期必失败）');
+const wfUnsignedPath = path.join(ROOT, '.github', 'workflows', 'ios-unsigned-ipa.yml');
+const wfSignedPath = path.join(ROOT, '.github', 'workflows', 'ios-signed-ipa.yml');
+const unsignedYml = fs.readFileSync(wfUnsignedPath, 'utf8');
+const signedYml = fs.readFileSync(wfSignedPath, 'utf8');
+for (const [name, yml] of [['未签名', unsignedYml], ['已签名', signedYml]]) {
+  ok(name + '工作流显式挑选 Xcode（xcode-select -s）', /xcode-select -s/.test(yml));
+  ok(name + '工作流硬校验 Xcode 主版本 ≥ 16', /-lt 16/.test(yml));
+  ok(name + '工作流写明了这条要求的由来', yml.indexOf('MLKit 8.x') >= 0);
+}
+ok('未签名工作流的 Archive 会把报错写进 annotations（匿名可读）',
+  /::error::\$\(printf/.test(unsignedYml));
+{
+  // 交叉校验：插件 podspec 依赖的 GoogleMLKit 主版本决定 Xcode 下限
+  const MLKIT_MIN_XCODE = { 6: 15.0, 7: 15.3, 8: 16, 9: 16 };
+  if (fs.existsSync(barcodePodspec)) {
+    const spec = fs.readFileSync(barcodePodspec, 'utf8');
+    const dep = /dependency\s+'GoogleMLKit\/BarcodeScanning'\s*,\s*'~>\s*(\d+)\./.exec(spec);
+    if (dep) {
+      const major = parseInt(dep[1], 10);
+      const minXcode = MLKIT_MIN_XCODE[major] || null;
+      console.log(`  扫码插件依赖 GoogleMLKit ~> ${major}.x → 需要 Xcode ≥ ${minXcode}`);
+      ok('依赖要求 Xcode ≥ 16 时，两个工作流都已选 16+',
+        minXcode === null || minXcode < 16 || (/-lt 16/.test(unsignedYml) && /-lt 16/.test(signedYml)));
+    }
+  }
+}
+
 console.log('\n--------------------------------------------------');
 console.log(`结果: ${pass} 通过 / ${fail} 失败`);
 process.exit(fail === 0 ? 0 : 1);

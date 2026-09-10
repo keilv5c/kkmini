@@ -135,6 +135,23 @@ jobs:
           command -v pod >/dev/null 2>&1 || sudo gem install cocoapods --no-document
           pod --version
 
+      # macos-14 镜像默认 Xcode 是 15.4，而 MLKit 8.x 硬性要求 >= 16.0.0
+      # （ML Kit 发布说明 2025-03-25：GoogleMLKit 8.0.0，"On iOS, raised the minimum
+      #   supported version of Xcode to 16.0.0."）。不选的话 pod install 成功、
+      # xcodebuild archive 编译期才失败。
+      - name: 选择 Xcode（MLKit 8.x 要求 >= 16）
+        run: |
+          ls -d /Applications/Xcode*.app || true
+          LATEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)
+          echo "选中: $LATEST"
+          sudo xcode-select -s "$LATEST/Contents/Developer"
+          xcodebuild -version
+          XV=$(xcodebuild -version | head -n 1 | awk '{print $2}')
+          if [ "${XV%%.*}" -lt 16 ]; then
+            echo "::error::当前 Xcode 是 $XV，但 MLKit 8.x 要求 >= 16.0.0"
+            exit 1
+          fi
+
       - name: 同步 web 资源
         run: npx cap sync ios
 
@@ -170,20 +187,34 @@ jobs:
         working-directory: ios/App
         run: |
           set -o pipefail
-          xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
-            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" \
-            ENABLE_USER_SCRIPT_SANDBOXING=NO \
-            archive | tail -n 60
+          echo "使用 Xcode: $(xcodebuild -version | head -n 1)"
+          LOG="$RUNNER_TEMP/archive.log"
+          if xcodebuild \
+               -workspace App.xcworkspace \
+               -scheme App \
+               -configuration Release \
+               -sdk iphoneos \
+               -destination 'generic/platform=iOS' \
+               -archivePath "$RUNNER_TEMP/App.xcarchive" \
+               CODE_SIGN_STYLE=Manual \
+               DEVELOPMENT_TEAM="$TEAM_ID" \
+               CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+               PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+               OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" \
+               ENABLE_USER_SCRIPT_SANDBOXING=NO \
+               archive > "$LOG" 2>&1; then
+            echo "Archive 成功 ✅"
+            tail -n 15 "$LOG"
+          else
+            echo "==================== Archive 失败 ===================="
+            tail -n 60 "$LOG"
+            echo "--- 关键报错（同时写入 check annotations，便于匿名排查）---"
+            grep -n -i -E "error:|fatal error|ARCHIVE FAILED|requires Xcode|newer version of the Swift compiler|signing" "$LOG" \
+              | head -n 8 | while IFS= read -r line; do
+                  echo "::error::$(printf '%s' "$line" | sed 's/%/%25/g')"
+                done || true
+            exit 1
+          fi
 
       - name: 导出 IPA
         run: |

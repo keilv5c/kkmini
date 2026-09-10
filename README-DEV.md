@@ -399,18 +399,61 @@ CI 上 `cap sync ios` 那一步 **2 秒就红**、而且日志里**没有任何 
 - Capacitor 模板给的 Podfile 是 `platform :ios, '15.0'` → CocoaPods 在**解析阶段**就找不到可用版本 →
   `pod install` 立刻失败（连下载都没开始，所以只要 2 秒）
 
-修法（已改，且已验证 `cap sync/update` **不会**覆盖这两处）：
+修法（已改）：
 
 | 文件 | 改成 |
 |---|---|
-| `ios/App/Podfile` | `platform :ios, '15.5'` |
+| `ios/App/Podfile` | `platform :ios, '15.5'`（**必须放文件第一行**，见下面警告） |
 | `ios/App/App.xcodeproj/project.pbxproj` | `IPHONEOS_DEPLOYMENT_TARGET = 15.5;`（4 处） |
 
-> 依据：Capacitor CLI 的 `updatePodfile()` 只做两处定点替换（`def capacitor_pods` 块、`require_relative` 路径），
-> 不碰 `platform :ios` 那一行 —— 我读过 `@capacitor/cli/dist/ios/update.js` 并做过实验验证。
+> ⚠️ **纠正一个曾经写错、并因此连红三次 CI 的结论**：
+> `cap sync` / `cap update` **会**重写 Podfile。Capacitor CLI 的 `updatePodfile()` 用正则
+> `/(def capacitor_pods)[\s\S]+?(\nend)/` 定位要重写的代码块 —— 起点就是那串触发字符本身。
+> 当时这份 Podfile 的注释里恰好写了"CLI 只定点替换 `def capacitor_pods` 块和 require_relative"，
+> 匹配起点于是前移到注释处，把注释后半句、`platform :ios,'15.5'`、`use_frameworks!`、`install!`
+> 和真正的定义行**一起删掉**；`target 'App'` 里调用的 `capacitor_pods` 就成了未定义方法：
 >
-> 已加 `test/ios_config.test.js` 守住：Podfile 平台 ≥ 15.5、pbxproj 四处目标一致且与 Podfile 相同、
-> 并且会根据扫码插件的 `GoogleMLKit` 依赖主版本反推最低系统要求做交叉校验。
+> ```
+> [!] Invalid `Podfile` file: undefined method `capacitor_pods'
+> ```
+>
+> 它 1 秒内失败、且没有任何 pod 下载日志，所以表面上还是"2 秒红"，极难定位。
+> 现在：platform 行放在文件第一行（正则永远吃不到它）+ 注释里不写那串字符 +
+> `tools/check-podfile.js` 静态体检并用 CLI 真实正则"重放"一遍 +
+> `test/ios_config.test.js` 第 4 节回归测试（含"埋雷必须被检出"的反向自检）。
+> 工作流里 `cap sync/update` 之后也各加了一步「校验 Podfile 没被改坏」。
+>
+> `test/ios_config.test.js` 另外守住：Podfile 平台 ≥ 15.5、pbxproj 四处目标一致且与 Podfile 相同、
+> 并会根据扫码插件的 `GoogleMLKit` 依赖主版本反推最低系统要求做交叉校验。
+
+---
+
+### 历史坑 #7：MLKit 8.x 要求 **Xcode ≥ 16**，而 `macos-14` 默认只有 15.4
+
+Podfile 修好之后，CI 的失败点从第 10 步推进到了第 14 步 `xcodebuild archive`（23 秒失败），
+根因是官方镜像的默认工具链太旧：
+
+- 扫码插件依赖 `GoogleMLKit/BarcodeScanning ~> 8.0.0`；ML Kit 官方发布说明 2025-03-25 那一版
+  （GoogleMLKit **8.0.0** / MLKitBarcodeScanning 7.0.0 / MLKitCommon 13.0.0）明确写着：
+  > **On iOS, raised the minimum supported version of Xcode to 16.0.0.**
+- GitHub 的 `macos-14` 镜像**默认 Xcode 是 15.4**（16.1 / 16.2 装在镜像里，但没被 `xcode-select` 选中）
+- 于是 `pod install` 一切正常（只下载预编译 xcframework），**一到编译期就失败** ——
+  因为 MLKit 8 的二进制是用 Xcode 16 的 Swift 编译的，报错往往很隐晦
+
+修法（已改，两个工作流都加了）：
+
+```yaml
+- name: 选择 Xcode（MLKit 8.x 要求 >= 16）
+  run: |
+    LATEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)
+    sudo xcode-select -s "$LATEST/Contents/Developer"
+    XV=$(xcodebuild -version | head -n 1 | awk '{print $2}')
+    [ "${XV%%.*}" -lt 16 ] && { echo "::error::Xcode $XV 太旧"; exit 1; }
+```
+
+> 另外：CI 的作业日志接口需要写权限（匿名读是 403），排查时改从 **check-run annotations**
+> 入手（公开仓库可匿名读）。所以 Archive 步骤会把 `error:` 开头的行用 `::error::` 抛出来，
+> 这样即使拿不到日志也能看到报错原文。
 
 ---
 
