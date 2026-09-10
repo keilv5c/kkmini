@@ -31,7 +31,9 @@ console.log('Mini DAYZ WebRTC —— iOS 工程配置校验');
 /* ------------------------------------------------ 1. Podfile 的平台版本 */
 section('1. Podfile 部署目标');
 ok('Podfile 存在', fs.existsSync(podfilePath));
-const podfile = fs.readFileSync(podfilePath, 'utf8');
+const podfileRaw = fs.readFileSync(podfilePath, 'utf8');
+// 去掉注释行再匹配：文件顶部的中文说明里也写着 "platform :ios, '15.5'"，不能误匹配到注释
+const podfile = podfileRaw.split(/\r?\n/).filter(l => !/^\s*#/.test(l)).join('\n');
 const pm = /platform\s*:ios\s*,\s*'([\d.]+)'/.exec(podfile);
 ok('能读到 platform :ios', !!pm, pm ? pm[1] : '(没读到)');
 const podPlatform = pm ? parseFloat(pm[1]) : 0;
