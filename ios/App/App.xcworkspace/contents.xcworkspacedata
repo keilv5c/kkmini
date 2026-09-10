@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  contents.xcworkspacedata —— 工作区描述。
+  `pod install` 会重写这个文件并加入 Pods.xcodeproj；这里先给一份最小可用的，
+  这样即使 pod install 被跳过（或你想先在 Xcode 里打开看看），工作区也是完整的。
+-->
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:App.xcodeproj">
+   </FileRef>
+</Workspace>

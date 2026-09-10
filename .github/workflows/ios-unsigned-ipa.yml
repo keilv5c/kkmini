@@ -1,17 +1,31 @@
 # ============================================================================
 #  Build iOS IPA (unsigned) —— 用 GitHub 的 macOS 机器编译出未签名 IPA
 # ----------------------------------------------------------------------------
-#  用途：你没有 Mac 时也能拿到 .ipa；之后再在 Windows 上用 Sideloadly/AltStore
-#        用自己的 Apple ID 签名安装（免费账号 7 天有效，付费账号 1 年）。
+#  用途：你没有 Mac 时拿到 .ipa，再在 Windows 上用 Sideloadly/AltStore
+#        配合自己的 Apple ID 签名安装（免费账号 7 天有效，付费账号 1 年）。
 #
-#  用法：推到 GitHub 后，Actions → 本工作流 → Run workflow → 下载 Artifacts。
-#  说明：CocoaPods 版的 iOS 工程（扫码插件只有 podspec，SPM 会被跳过），
-#        GitHub 的 macOS runner 自带 CocoaPods，所以 pod install 能跑通。
+#  用法：推到 GitHub → Actions → 本工作流 → Run workflow
+#        （可选填 bundle_id：免费 Apple ID 必须用全局唯一的 Bundle ID，
+#          不确定就填 com.你的名字.mdzmp，避免和别人的冲突）
+#
+#  几个已经踩过的 CI 坑，都已在本文件里处理：
+#    1. Capacitor 模板没有"共享 scheme" → 仓库里已补
+#       ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme
+#    2. capacitor.config.ts 需要 TypeScript，但 devDependencies 里的
+#       node-datachannel 是原生模块、在 CI 上装它既慢又可能失败
+#       → 只装生产依赖 + 单独装 typescript
+#    3. macOS runner 上 CocoaPods 缺失/过旧 → 缺失时自动 gem install
+#    4. 未签名归档：CODE_SIGNING_ALLOWED=NO（连同 Pods 一起生效）
 # ============================================================================
 name: Build iOS IPA (unsigned)
 
 on:
   workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: 'Bundle ID（留空则用工程里的 com.mdz.webrtcmp；免费 Apple ID 请填一个你独有的，如 com.yourname.mdzmp）'
+        required: false
+        default: ''
   push:
     branches: [ main, master ]
     paths:
@@ -24,7 +38,7 @@ on:
 jobs:
   build-ipa:
     runs-on: macos-14
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -36,24 +50,48 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Show toolchain versions
+      - name: Toolchain versions
         run: |
           node -v
           npm -v
           xcodebuild -version
+          (pod --version || echo "CocoaPods 未安装")
+
+      - name: Ensure CocoaPods
+        run: |
+          if ! command -v pod >/dev/null 2>&1; then
+            echo "安装 CocoaPods..."
+            sudo gem install cocoapods --no-document
+          fi
           pod --version
 
-      - name: Install npm deps
-        run: npm ci
+      - name: Install npm deps（跳过原生测试依赖，单独装 typescript）
+        run: |
+          npm ci --omit=dev
+          npm install --no-save typescript
+
+      - name: 应用自定义 Bundle ID（可选）
+        if: ${{ github.event.inputs.bundle_id != '' }}
+        run: |
+          NEW_ID="${{ github.event.inputs.bundle_id }}"
+          echo "把 Bundle ID 改成: $NEW_ID"
+          /usr/bin/sed -i '' "s/com\.mdz\.webrtcmp/$NEW_ID/g" ios/App/App.xcodeproj/project.pbxproj
+          /usr/bin/sed -i '' "s/com\.mdz\.webrtcmp/$NEW_ID/g" capacitor.config.ts
+          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/App/App.xcodeproj/project.pbxproj
 
       - name: Sync web assets into iOS project
         run: npx cap sync ios
 
-      - name: Pod install (显式再跑一次，便于日志定位)
+      - name: Pod install
         working-directory: ios/App
-        run: pod install --repo-update
+        run: pod install
 
-      - name: Archive (unsigned)
+      - name: 列出 scheme/配置（便于日志定位）
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -list
+
+      - name: Archive（未签名）
         working-directory: ios/App
         run: |
           set -o pipefail
@@ -67,21 +105,31 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
-            archive | tail -n 60
+            archive | tail -n 80
 
-      - name: Package into .ipa
+      - name: 打包成 .ipa 并校验内容
         run: |
           set -e
           APP_PATH="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
-          test -d "$APP_PATH" || { echo "没找到 App.app，归档失败"; exit 1; }
+          test -d "$APP_PATH" || { echo "::error::没找到 App.app，归档失败"; exit 1; }
           mkdir -p "$RUNNER_TEMP/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
           cd "$RUNNER_TEMP"
           zip -qry Minidayz-unsigned.ipa Payload
           ls -lh Minidayz-unsigned.ipa
-          echo "--- 校验包内是否含我们的新代码 ---"
-          unzip -l Minidayz-unsigned.ipa | grep -E 'mdz_(p2p|ui|core)\.js|lan_bridge\.js' || true
+          echo "--- 确认 web 代码进包了 ---"
+          unzip -l Minidayz-unsigned.ipa | grep -E 'mdz_(p2p|ui|core)\.js|lan_bridge\.js|vendor/' || true
+          echo "--- 确认 Info.plist 权限键 ---"
+          PLIST="$APP_PATH/Info.plist"
+          for k in NSCameraUsageDescription NSLocalNetworkUsageDescription NSBonjourServices UIRequiresFullScreen; do
+            if /usr/libexec/PlistBuddy -c "Print :$k" "$PLIST" >/dev/null 2>&1; then
+              echo "  OK   $k"
+            else
+              echo "  ::warning::缺少 $k"
+            fi
+          done
+          echo "--- 包内 Bundle ID ---"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PLIST"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
