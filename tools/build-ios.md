@@ -81,17 +81,26 @@ xcodebuild -exportArchive -archivePath /tmp/App.xcarchive \
 
 思路：**GitHub 的 macOS 机器负责编译出"未签名 IPA"，你在 Windows 上用 Sideloadly + 自己的 Apple ID 签名安装。**
 
-1. 把整个 `Minidayz-WebRTC` 推到 GitHub 仓库（public 免费；private 每月有免费额度）
-2. 仓库页面 **Actions → Build iOS IPA (unsigned) → Run workflow**
-3. 等 10~20 分钟，从该次运行的 **Artifacts** 下载 `minidayz-unsigned-ipa`（里面是 `Minidayz-unsigned.ipa`）
-4. Windows 上装 [Sideloadly](https://sideloadly.io/)（也可用 AltStore / 3uTools）：
-   - 用数据线连 iPhone
-   - 把 ipa 拖进去，填 Apple ID（免费账号即可）
-   - 开始 → 手机上会要求"信任开发者"（设置 → 通用 → VPN与设备管理）
-5. **免费 Apple ID 的限制**：签名 7 天有效、最多 3 个 App、每周要重签；
-   付费开发者账号（$99/年）可以 1 年有效，并能用 TestFlight 分发。
+**手把手的完整步骤（含常见报错）见 [`sideload-windows.md`](./sideload-windows.md)**，这里只列要点：
 
-> 未签名 IPA **不能**直接双击安装，必须经过 Sideloadly/AltStore 这类带签名的工具。
+1. 把整个 `Minidayz-WebRTC` 推到 GitHub 仓库（`git remote add origin ... && git push -u origin main`）
+   —— 目录里已经写好 `.gitignore`，只会推约 30MB（不含 node_modules / 构建产物 / dist）
+2. 仓库页面 **Actions → Build iOS IPA (unsigned) → Run workflow**
+   （**免费 Apple ID 请在 `bundle_id` 输入框里填一个你独有的 ID**，例如 `com.yourname.mdzmp`）
+3. 等 10~20 分钟，从该次运行的 **Artifacts** 下载 `minidayz-unsigned-ipa`
+4. Windows 上装 [Sideloadly](https://sideloadly.io/)（另需 apple.com 版 iTunes 提供 USB 驱动）：
+   连上 iPhone → 拖入 ipa → 填 Apple ID → Start
+5. 手机上信任证书（设置 → 通用 → **VPN 与设备管理**），iOS 16+ 还要开
+   **开发者模式**（设置 → 隐私与安全性 → 开发者模式）
+6. **免费 Apple ID 的限制**：签名 7 天有效、最多 3 个 App、每周要重签；
+   付费开发者账号（$99/年）可以 1 年有效，并能用 TestFlight 分发。
+   想省掉每周重签可以用 **AltStore**（自动后台刷新）。
+
+> 云构建里已经处理掉三个经典 CI 坑：
+> ① Capacitor 模板**没有共享 scheme** → 仓库里补了 `ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme`
+> ② `capacitor.config.ts` 需要 TypeScript，但 `node-datachannel` 是原生模块在 CI 上又慢又容易挂 →
+>    工作流只装生产依赖 + 单独装 typescript
+> ③ macOS runner 上 CocoaPods 缺失 → 工作流里自动 `gem install cocoapods`
 
 ---
 
