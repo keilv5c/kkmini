@@ -363,7 +363,7 @@ adb install -r "D:\game_hack\minidayz\Minidayz-WebRTC\dist\Minidayz-WebRTC-debug
 | 项 | 位置 | 说明 |
 |---|---|---|
 | iOS 工程 | `ios/App/App.xcodeproj` | 用 **CocoaPods** 生成（扫码插件只有 podspec，SPM 会跳过它） |
-| 依赖清单 | `ios/App/Podfile` | 含 Capacitor / MlkitBarcodeScanning / Camera / StatusBar，`platform :ios, '15.0'` |
+| 依赖清单 | `ios/App/Podfile` | 含 Capacitor / MlkitBarcodeScanning / Camera / StatusBar，**`platform :ios, '15.5'`**（不能是 15.0，见下） |
 | 权限与显示 | `ios/App/App/Info.plist` | 相机、**本地网络**、Bonjour、横屏锁定、全屏 |
 | 云构建 | `.github/workflows/ios-unsigned-ipa.yml` | GitHub 的 macOS 机器产出未签名 IPA |
 
@@ -388,6 +388,29 @@ iOS 上与安卓不同的坑（已处理，务必注意）：
 2. 必须在**真机**上测：模拟器没有摄像头，扫码测不了，WebRTC 也不可靠。
 3. 免费 Apple ID 的 Bundle ID 必须全局唯一，`com.mdz.webtcmp` 可能被占用，改一个自己的。
 4. iOS 侧的扫码同样走**原生 MLKit `startScan`**（CocoaPods 集成），逻辑与安卓共用一套 `mdz_ui.js`。
+
+### 历史坑 #6：iOS 部署目标必须是 15.5，不能是 Capacitor 默认的 15.0
+
+CI 上 `cap sync ios` 那一步 **2 秒就红**、而且日志里**没有任何 pod 下载记录**，原因就在这里：
+
+- 扫码插件 `CapacitorMlkitBarcodeScanning.podspec` 依赖 `GoogleMLKit/BarcodeScanning ~> 8.0.0`
+- 而 CocoaPods Specs 里 **整条 MLKit 链都写着 `platform :ios, '15.5'`**
+  （实测查过：GoogleMLKit 8.0.0/9.0.0、MLKitBarcodeScanning 6.0.0/7.0.0、MLKitCommon 12.0.0/13.0.0 全是 15.5）
+- Capacitor 模板给的 Podfile 是 `platform :ios, '15.0'` → CocoaPods 在**解析阶段**就找不到可用版本 →
+  `pod install` 立刻失败（连下载都没开始，所以只要 2 秒）
+
+修法（已改，且已验证 `cap sync/update` **不会**覆盖这两处）：
+
+| 文件 | 改成 |
+|---|---|
+| `ios/App/Podfile` | `platform :ios, '15.5'` |
+| `ios/App/App.xcodeproj/project.pbxproj` | `IPHONEOS_DEPLOYMENT_TARGET = 15.5;`（4 处） |
+
+> 依据：Capacitor CLI 的 `updatePodfile()` 只做两处定点替换（`def capacitor_pods` 块、`require_relative` 路径），
+> 不碰 `platform :ios` 那一行 —— 我读过 `@capacitor/cli/dist/ios/update.js` 并做过实验验证。
+>
+> 已加 `test/ios_config.test.js` 守住：Podfile 平台 ≥ 15.5、pbxproj 四处目标一致且与 Podfile 相同、
+> 并且会根据扫码插件的 `GoogleMLKit` 依赖主版本反推最低系统要求做交叉校验。
 
 ---
 

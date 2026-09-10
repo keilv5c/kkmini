@@ -8,7 +8,7 @@
 
 | 需要 | 说明 |
 |---|---|
-| iPhone | **iOS 15+**；iOS 16+ 还要开"开发者模式"（见第 3 步） |
+| iPhone | **iOS 15.5+**（MLKit 扫码 pod 的最低要求）；iOS 16+ 还要开"开发者模式"（见第 3 步） |
 | Windows 电脑 | 装 **iTunes（必须从 apple.com 下，不要用微软商店版）** —— 它带 Apple 移动设备 USB 驱动；再装 [Sideloadly](https://sideloadly.io/) |
 | Apple ID | 免费账号即可（限制见文末）；付费开发者账号 $99/年可 1 年有效 |
 | GitHub 账号 | 免费账号的 Actions 每月有额度，公开仓库不限 |

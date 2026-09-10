@@ -92,6 +92,9 @@ jobs:
       - name: 读取描述文件信息（App ID / Team / 名称）
         run: |
           set -e
+          echo "--- iOS 部署目标（必须 >= 15.5，MLKit 要求）---"
+          grep -n "platform :ios" ios/App/Podfile || echo "::warning::Podfile 里没有 platform :ios"
+          grep -n "IPHONEOS_DEPLOYMENT_TARGET" ios/App/App.xcodeproj/project.pbxproj | head -n 6 || true
           security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$RUNNER_TEMP/profile.plist")
           TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" "$RUNNER_TEMP/profile.plist")

@@ -119,9 +119,15 @@ xcodebuild -exportArchive -archivePath /tmp/App.xcarchive \
 2. **摄像头权限**：扫码第一次会弹相机权限；模式A 的「取消 mDNS 混淆」那一步也会用到相机。
 3. **必须在真机上测**：iOS 模拟器没有摄像头，扫码相关功能测不了；WebRTC 在模拟器上也不可靠。
 4. **WKWebView 的 WebRTC**：需要 iOS 14.3+（`getUserMedia`）;我们主要走原生 MLKit 扫码 + DataChannel，
-   受系统版本影响较小，但建议 iOS 15+。
-5. **横屏锁定**：`UIRequiresFullScreen` + 只保留 Landscape，才能在 iPad 上也强制横屏。
-6. **免费账号的 Bundle ID**：必须是全局唯一的，`com.mdz.webrtcmp` 可能被占用，改一个自己的。
+   但**整体部署目标必须是 iOS 15.5**（见下条）。
+5. **部署目标必须是 15.5，不能是 Capacitor 默认的 15.0**：扫码插件依赖
+   `GoogleMLKit/BarcodeScanning ~> 8.0.0`，而整条 MLKit 链（GoogleMLKit / MLKitBarcodeScanning /
+   MLKitCommon）的 podspec 都写着 `platform :ios, '15.5'`。写 15.0 的话 CocoaPods 在**解析阶段**
+   就找不到可用版本，`pod install` **秒失败**（CI 上表现为 `cap sync` 那一步 2 秒就红、日志里没有任何
+   pod 下载记录）。已修：`ios/App/Podfile` 的 `platform :ios, '15.5'` +
+   `project.pbxproj` 里 4 处 `IPHONEOS_DEPLOYMENT_TARGET = 15.5;`，并有 `test/ios_config.test.js` 守着。
+6. **横屏锁定**：`UIRequiresFullScreen` + 只保留 Landscape，才能在 iPad 上也强制横屏。
+7. **免费账号的 Bundle ID**：必须是全局唯一的，`com.mdz.webrtcmp` 可能被占用，改一个自己的。
 
 ---
 

@@ -1,6 +1,12 @@
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '15.0'
+# ⚠️ 必须是 15.5，不能是 Capacitor 默认的 15.0！
+# 原因：扫码插件依赖 GoogleMLKit/BarcodeScanning ~> 8.0.0，而整条 MLKit 链
+# （GoogleMLKit / MLKitBarcodeScanning / MLKitCommon）的 podspec 都写着 platform :ios, '15.5'。
+# 写 15.0 的话 CocoaPods 在**解析阶段**就找不到可用版本，pod install 秒失败
+# （CI 上表现为 cap sync 那一步 2 秒就红，且没有任何 pod 下载日志）。
+# 实测：cap sync/update **不会**重写这一行（CLI 只定点替换 def capacitor_pods 块和 require_relative），所以在这里改是可靠的。
+platform :ios, '15.5'
 use_frameworks!
 
 # workaround to avoid Xcode caching of Pods that requires

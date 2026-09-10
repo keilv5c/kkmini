@@ -72,6 +72,16 @@ jobs:
           fi
           echo "  web/ 文件数 : $(find web -type f | wc -l)"
           echo "  ios/ 文件数 : $(find ios -type f | wc -l)"
+          echo ""
+          echo "================ iOS 部署目标（必须 >= 15.5，MLKit 要求）================"
+          echo "--- Podfile ---"
+          grep -n "platform :ios" ios/App/Podfile || echo "::error::Podfile 里没有 platform :ios"
+          echo "--- project.pbxproj ---"
+          grep -n "IPHONEOS_DEPLOYMENT_TARGET" ios/App/App.xcodeproj/project.pbxproj | head -n 6
+          if grep -q "platform :ios, '15.0'" ios/App/Podfile; then
+            echo "::error::Podfile 还是 15.0 —— GoogleMLKit 8.x 要求 iOS 15.5，pod install 会秒失败"
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
