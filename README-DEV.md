@@ -171,7 +171,7 @@ Android 已加好的权限（`android/app/src/main/AndroidManifest.xml`）：
 
 ---
 
-## 五、测试（`npm test`，共 167 项，当前全绿）
+## 五、测试（`npm test`，共 308 项断言 + 24 个工作流 shell 块，当前全绿）
 
 | 套件 | 跑什么 | 结果 |
 |---|---|---|
@@ -456,6 +456,27 @@ Podfile 修好之后，CI 的失败点从第 10 步推进到了第 14 步 `xcode
 > 这样即使拿不到日志也能看到报错原文。
 
 ---
+
+### 历史坑 #8：iOS 扫不上码 / `Called in wrong state: stable` / 异地一直卡在"等待直连"
+
+2026-09-10 真机复现（iOS 房主 + 安卓客机）：
+
+| 现象 | 真因 | 修法 |
+|---|---|---|
+| **安卓能扫、iOS 回扫怎么都扫不上，偶尔突然又扫上了** | 原生扫码插件要求**同一个码被连续识别满 10 帧**才回调（iOS `BarcodeScanner.swift` 与安卓 `BarcodeScanner.java` 都是 `votes >= 10`）。iOS 的 `startScan` 默认只有 **1280x720**，89x89 模块的密集码在整幅画面里每模块仅 ~2px，MLKit 只能**间歇**识别 → 投票涨得极慢 | ① `startScan` 传 `resolution: 2`（1080p）② iOS 再补数字变焦 1.8x，8 秒没扫上自动推到 3x ③ `tools/patch-mlkit-votes.js` 把投票门槛 10 → **3**（已挂 `postinstall`，npm ci 后自动生效；误读由握手串自带的 FNV 校验兜住） |
+| 安卓日志：`Failed to set remote answer sdp: Called in wrong state: stable`，客机一直进不去 | 原生扫码回调**连发多次**（事件到达 JS 的顺序不保证），同一张回码被应用两次；第二次 `setRemoteDescription(answer)` 时 PC 已是 `stable`，必然抛错 —— 而第一次其实已经成功了 | ① UI 侧 `scanHandled` 单次闩锁 ② 传输层 `acceptAnswer` 幂等（`_remoteAnswerApplied`）：重复回码静默忽略；真正过期（房间重建过）才报可操作的错 ③ 通道已开时直接忽略回码 |
+| 出码后对方解析不了地址 / 一直"等待直连" | 房主的 Offer 是**在授权摄像头之前**生成的，浏览器/WebView 此时会做 mDNS 混淆，候选全是 `xxxx.local`，对方根本解析不了 | 模式A 点「创建房间」时**先申请摄像头权限**（`unobfuscated: true`），拿到真实内网 IP 再出码 |
+| 异地文本模式双方握手串都贴好了还是连不上 | 文本模式**本来没有长度限制，却仍在裁剪 SDP + 把候选瘦身到 3 个/类**，等于白丢"唯一能打通的那条" | 文本模式原样打包完整 SDP；STUN 列表补 Google/Cloudflare；没有 srflx 候选时直接在状态栏说清"异地必失败" |
+| 扫描时看不到取景画面 | 扫描时没收起自己的**全屏二维码浮层**（`rgba(6,8,10,.96)`），而 iOS/安卓的原生预览都插在 WebView **下面** | 开扫前 `hideQr()`；`enterNativeScanVisual` 改成把所有 HTML 都藏掉（`body *:not(#mdz-scan-tip)`）+ 画取景框；网页扫码改用**全屏浮层**取景（不再用面板里 180px 的小窗） |
+
+连带新增：`diagnose()` 一句话诊断（握手后 20 秒没连上就直接打在面板上）、
+`test/mdz_handshake.test.js`（26 项，用行为一致的假 RTCPeerConnection）与
+`test/mdz_fix_audit.test.js`（25 项，逐条钉住上面的修法）。
+构建号升到 `mdz-webrtc-web-2` / `mdz-ui-2` —— 手机上打开面板要能看到 `mdz-ui-2`，否则装的是旧包。
+
+> ⚠️ 这些修复都在 **web 资源**里，而 Capacitor 是把 web 资源打进安装包的：
+> 改完必须**重新构建 + 重装**（安卓 `tools/build-apk.ps1`，iOS 跑 CI 再重签），
+> 光刷新页面或重启 App 是拿不到新代码的。
 
 ## 九、原版未被改动的证明
 

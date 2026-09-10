@@ -109,6 +109,13 @@ xcodebuild -exportArchive -archivePath /tmp/App.xcarchive \
 > ⑤ **MLKit 8.x 要求 Xcode ≥ 16，而 `macos-14` 默认是 15.4** → pod install 正常但
 >    `xcodebuild archive` 编译期必失败（约 23 秒）。工作流里会 `ls -d /Applications/Xcode*.app`
 >    选最新那个再 `xcode-select -s`，并硬校验主版本 ≥ 16
+>
+> 另外，扫码插件的"投票门槛"由 `tools/patch-mlkit-votes.js` 在 `npm ci` 的 postinstall 里
+> 自动从 10 帧降到 3 帧（插件要求同一个码连续识别 10 帧才回调，密集二维码在手机上根本凑不满，
+> 表现就是"iOS 怎么都扫不上、偶尔又突然扫上"）。它同时改 iOS Swift 与安卓 Java 两侧。
+>
+> ⚠️ **改完 web/ 一定要重新出包**：Capacitor 把 web 资源打进安装包，光重启 App 拿不到新代码。
+> 装好后打开联机面板，标题里应能看到 `mdz-ui-2`（旧包是 `mdz-ui-1`）。
 
 ---
 

@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  var BUILD = 'mdz-ui-1';
+  var BUILD = 'mdz-ui-2';
 
   /** 面板起不来时也要让用户"看得见"错误，而不是界面上一片空白 */
   function fatal(msg, detail) {
@@ -46,6 +46,11 @@
     scanMethod: null,          // 'native' | 'web'，App 内默认 native（MLKit 识别率更高）
     scanFrames: 0,             // 已分析帧数（诊断"摄像头有没有出画面"）
     scanWatchdog: null,        // 8 秒未识别的提示定时器
+    scanHandled: false,        // 本次扫码是否已处理（原生回调会连发多次，必须只认第一张）
+    appliedZoom: 0,            // iOS 上已设置的数字变焦倍数
+    connectWatchdog: null,     // 握手后 20 秒还没连上就打印诊断
+    joined: false,             // 是否已调用过 window.joinGame（防止重复初始化游戏侧）
+    joinedSession: null,       // 已经接过游戏侧的客机会话对象（换会话才需要重新 joinGame）
     useBarcodeDetector: false, // 默认关闭：安卓 WebView 里 BarcodeDetector 缺失模块时会静默失败
     scanner: null,             // html5-qrcode 实例
     scanning: false,
@@ -61,6 +66,16 @@
         : window.Capacitor.platform && window.Capacitor.platform !== 'web'));
     } catch (e) { return false; }
   }
+  function platformName() {
+    try {
+      var c = window.Capacitor;
+      if (!c) return 'web';
+      if (typeof c.getPlatform === 'function') return c.getPlatform() || 'web';
+      return c.platform || 'web';
+    } catch (e) { return 'web'; }
+  }
+  function isIOS() { return platformName() === 'ios'; }
+  function isAndroid() { return platformName() === 'android'; }
   function nativeScanner() {
     try {
       var plugins = window.Capacitor && window.Capacitor.Plugins;
@@ -337,15 +352,7 @@
     ui.btnGenAnswer.onclick = onGenAnswer;
     ui.btnAcceptAnswer.onclick = onAcceptAnswer;
     ui.btnUnobf.onclick = onUnobfuscate;
-    ui.btnSwitchScan.onclick = function () {
-      // 手动切换：原生 MLKit ⇄ WebView(html5-qrcode)
-      var next = (state.scanMethod === 'native') ? 'web' : 'native';
-      if (next === 'native' && !nativeScanner()) { setStatus('本环境没有原生扫码插件，只能用网页扫码', '#ffcc66'); return; }
-      var purpose = (state.role === 'host') ? 'host-answer' : 'client-offer';
-      log('手动切换扫码方式：' + state.scanMethod + ' -> ' + next, '#ffcc66');
-      state.scanMethod = next;
-      startScan(purpose, next);
-    };
+    ui.btnSwitchScan.onclick = function () { switchScanMethod(); };
     ui.btnCancel.onclick = onCancel;
     ui.btnShowQr.onclick = function () {
       if (state.lastPayload) { renderQr(state.lastPayload); setStatus('二维码已重新显示', '#7bd88f'); }
@@ -508,6 +515,12 @@
     state.scanning = false;
     show(ui.camBox, false);
     show(ui.btnSwitchScan, false);
+    state.appliedZoom = 0;
+    if (ui.scanOverlay) {
+      show(ui.scanOverlay, false);
+      var holder = document.getElementById('mdz-scan-camera');
+      if (holder) { try { holder.innerHTML = ''; } catch (e) {} }
+    }
     if (state.scanWatchdog) { clearTimeout(state.scanWatchdog); state.scanWatchdog = null; }
     if (state.scanner) {
       try {
@@ -531,11 +544,22 @@
     var st = document.createElement('style');
     st.id = 'mdz-scan-style';
     st.textContent =
+      // html/body 必须透明，否则 WebView 会把下面的原生相机预览挡住
       'html.mdz-scanning, html.mdz-scanning body { background: transparent !important; }' +
-      'html.mdz-scanning #c2canvasdiv { visibility: hidden !important; }' +
-      'html.mdz-scanning #mdz-panel-wrap { display: none !important; }';
+      // 关键修复：把所有 HTML 内容都藏起来。
+      // iOS 的原生预览是插在 WebView **下面**的（插件 BarcodeScanner.swift 里
+      // webView.superview?.insertSubview(cameraView, belowSubview: webView)），
+      // 之前只藏了 #c2canvasdiv 和面板，全屏二维码浮层（rgba(6,8,10,.96)）还留着，
+      // 于是相机画面被自己的二维码糊住 —— 表现就是"能看到画面，但怎么都扫不上"。
+      'html.mdz-scanning body *:not(#mdz-scan-tip):not(#mdz-scan-reticle) {' +
+      ' visibility:hidden !important; background:transparent !important; box-shadow:none !important; }' +
+      'html.mdz-scanning #mdz-scan-tip, html.mdz-scanning #mdz-scan-reticle { visibility:visible !important; }';
     document.head.appendChild(st);
     document.documentElement.classList.add('mdz-scanning');
+    var ret = el('div', 'position:fixed;left:50%;top:50%;width:56vh;height:56vh;transform:translate(-50%,-50%);' +
+      'border:2px solid rgba(255,255,255,.75);border-radius:12px;pointer-events:none;z-index:2147483500');
+    ret.id = 'mdz-scan-reticle';
+    document.body.appendChild(ret);
     var tip = el('div', 'position:fixed;left:0;right:0;bottom:20px;text-align:center;color:#fff;' +
       'font:15px/1.6 "Microsoft YaHei",sans-serif;text-shadow:0 0 8px #000;pointer-events:none;z-index:2147483600',
       '把二维码放进取景框…（原生 MLKit 扫码）');
@@ -547,6 +571,8 @@
     if (st && st.parentNode) st.parentNode.removeChild(st);
     var tip = document.getElementById('mdz-scan-tip');
     if (tip && tip.parentNode) tip.parentNode.removeChild(tip);
+    var ret = document.getElementById('mdz-scan-reticle');
+    if (ret && ret.parentNode) ret.parentNode.removeChild(ret);
     try { document.documentElement.classList.remove('mdz-scanning'); } catch (e) {}
   }
 
@@ -567,6 +593,53 @@
     }).catch(function () { return null; });
   }
 
+  /* --------------------------- 网页扫码用的全屏取景浮层 ---------------------------
+     面板里那个 180px 高的小窗口根本没法瞄准；而且全屏浮层完全不依赖"WebView 透明"
+     这套原生预览机制，iOS / 安卓表现一致。原生扫码失败时自动降级到这里。 */
+  function ensureScanOverlay() {
+    if (ui.scanOverlay) return ui.scanOverlay;
+    var ov = el('div', 'position:fixed;inset:0;background:#000;display:none;overflow:hidden;z-index:' + (Z + 2));
+    ov.id = 'mdz-scan-overlay';
+    var holder = el('div', 'position:absolute;inset:0');
+    holder.id = 'mdz-scan-camera';
+    ov.appendChild(holder);
+    // html5-qrcode 会往容器里塞 video（可能还有 canvas/img），这里强制铺满
+    var style = document.createElement('style');
+    style.textContent =
+      '#mdz-scan-overlay video { width:100% !important; height:100% !important; object-fit:cover !important; }' +
+      '#mdz-scan-overlay img, #mdz-scan-overlay canvas { display:none !important; }';
+    ov.appendChild(style);
+    ui.scanReticle = el('div', 'position:absolute;left:50%;top:50%;width:58vh;height:58vh;' +
+      'transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.85);border-radius:12px;' +
+      'pointer-events:none');
+    ov.appendChild(ui.scanReticle);
+    ui.scanTip = el('div', 'position:absolute;left:0;right:0;bottom:8px;text-align:center;color:#fff;' +
+      'font:14px/1.6 "Microsoft YaHei",sans-serif;text-shadow:0 0 8px #000;pointer-events:none',
+      '把二维码放进框里');
+    ov.appendChild(ui.scanTip);
+    var bar = el('div', 'position:absolute;right:8px;top:8px');
+    ui.scanSwitch = el('button', BTN2_CSS + ';margin-left:6px', '换个扫码方式');
+    ui.scanSwitch.onclick = function () { switchScanMethod(); };
+    ui.scanCancel = el('button', BTN2_CSS + ';margin-left:6px', '取消扫码');
+    ui.scanCancel.onclick = function () { stopScan(); setStatus('已取消扫码', '#ffcc66'); };
+    bar.appendChild(ui.scanSwitch);
+    bar.appendChild(ui.scanCancel);
+    ov.appendChild(bar);
+    document.body.appendChild(ov);
+    ui.scanOverlay = ov;
+    return ov;
+  }
+
+  /** 原生 MLKit ⇄ 网页(html5-qrcode) 互相切换 */
+  function switchScanMethod() {
+    var next = (state.scanMethod === 'native') ? 'web' : 'native';
+    if (next === 'native' && !nativeScanner()) { setStatus('本环境没有原生扫码插件，只能用网页扫码', '#ffcc66'); return; }
+    var purpose = (state.role === 'host') ? 'host-answer' : 'client-offer';
+    log('切换扫码方式：' + (state.scanMethod || '?') + ' -> ' + next, '#ffcc66');
+    state.scanMethod = next;
+    startScan(purpose, next);
+  }
+
   /** 方案：WebView 内嵌扫码（html5-qrcode / ZXing）。
    *  注意 useBarCodeDetectorIfSupported 默认关闭：安卓 WebView 里 BarcodeDetector
    *  存在但底层模块缺失时会静默失败 —— 一帧都不回调，表现就是"完全没反应"。
@@ -574,6 +647,16 @@
    *    1) 不设 qrbox —— 设了会把画面裁到中间一块，二维码稍偏一点就永远扫不到
    *    2) 明确要高分辨率 —— 默认 stream 可能只有 640x480，89x89 的密集码根本不够看 */
   function startWebViewScan(purpose) {
+    stopScan();
+    state.scanning = true;
+    var ov = ensureScanOverlay();
+    show(ov, true);
+    ov.style.display = 'block';
+    if (ui.scanTip) {
+      ui.scanTip.textContent = (purpose === 'host-answer')
+        ? '把客机的回码放进框里（网页识别，不用对准）'
+        : '把房主的二维码放进框里（网页识别，不用对准）';
+    }
     return ensureWebScanner().then(function (ready) {
       if (!ready) throw new Error('html5-qrcode 不可用');
       return pickBackCameraId();
@@ -590,7 +673,7 @@
       function tryNext(i) {
         if (i >= chain.length) throw (lastErr || new Error('没有可用摄像头'));
         var cfg = chain[i];
-        var inst = new window.Html5Qrcode('mdz-camera', {
+        var inst = new window.Html5Qrcode('mdz-scan-camera', {
           verbose: false,
           experimentalFeatures: { useBarCodeDetectorIfSupported: state.useBarcodeDetector === true }
         });
@@ -631,6 +714,23 @@
     });
   }
 
+  /** iOS 上的数字变焦：密集二维码在 720p/1080p 整幅画面里太小，而插件要求同一个码
+   *  连续识别满 10 帧才回调（BarcodeScanner.swift 的 votes >= 10），
+   *  放大 2 倍等于每模块像素翻倍，识别命中率完全是两个量级。 */
+  function applyZoom(nat, want) {
+    if (!nat || typeof nat.setZoomRatio !== 'function') return;
+    var maxP = (typeof nat.getMaxZoomRatio === 'function') ? nat.getMaxZoomRatio() : Promise.resolve(null);
+    Promise.resolve(maxP).then(function (r) {
+      var max = (r && r.zoomRatio) || 0;
+      var z = (max > 0 && want > max) ? max : want;
+      state.appliedZoom = z;
+      log('原生变焦设为 ' + z + 'x（设备最大 ' + (max ? max.toFixed(1) : '未知') + '）', '#9fe8ff');
+      return nat.setZoomRatio({ zoomRatio: z });
+    }).catch(function (e) {
+      log('设置变焦失败（不影响扫码）：' + ((e && e.message) || e), '#ffcc66');
+    });
+  }
+
   /** 方案：Capacitor 原生插件（用**捆绑模型** startScan，离线、不依赖 Google Play 服务）
    *  MLKit 对密集二维码的识别率远高于 ZXing，所以 App 内优先用它。
    *  注意不要用 scan()：那是 Google Code Scanner，需要先下载 GMS 模块。 */
@@ -651,9 +751,17 @@
       if (st && st.camera === 'granted') return null;
       return nat.requestPermissions ? nat.requestPermissions() : null;
     }).then(function () {
-      return nat.startScan({ formats: ['QR_CODE'], lensFacing: 'BACK' });
+      // 分辨率必须是 1080p：iOS 的 startScan 默认只有 1280x720（插件里 resolution 缺省=1），
+      // 89x89 模块的密集码在整幅画面里每模块只有 ~2px，MLKit 很难连续命中 10 帧 ——
+      // 这正是"iOS 偶尔才扫得上、安卓秒扫"的根因（安卓 startScan 走的是 GMS 扫码器）。
+      // 映射见 BarcodeScannerHelper.convertIntToCapturePreset：0=640x480 1=720p 2=1080p 3=4K
+      var opts = { formats: ['QR_CODE'], lensFacing: 'BACK', resolution: 2 };
+      if (isAndroid()) opts.autoZoom = true;   // 仅 GMS 扫码器支持
+      log('原生扫码参数：' + JSON.stringify(opts), '#9fe8ff');
+      return nat.startScan(opts);
     }).then(function () {
       setStatus('把二维码放进取景框（原生 MLKit 扫码）', '#ffcc66');
+      if (isIOS()) applyZoom(nat, 1.8);        // iOS 再补一手数字变焦
       return true;
     }).catch(function (e) {
       exitNativeScanVisual();
@@ -673,7 +781,14 @@
       show(ui.btnSwitchScan, true);
       var desk = isDesktop();
       if (state.scanMethod === 'native') {
-        setStatus('原生扫码 8 秒内没识别到：把二维码占满取景框，或点「换个扫码方式」', '#ffcc66');
+        // iOS：先把变焦再推一档（很多机型是"离得太近对不上焦"，
+        // 放大后拿远一点反而更清楚），再给提示
+        var nat = nativeScanner();
+        if (isIOS() && nat && state.appliedZoom && state.appliedZoom < 3) {
+          log('8 秒没扫上，把原生变焦从 ' + state.appliedZoom + 'x 提到 3x 再试', '#ffcc66');
+          applyZoom(nat, 3);
+        }
+        setStatus('原生扫码 8 秒内没识别到：把手机拿远一点（10~15cm）让二维码占满取景框，或点「换个扫码方式」', '#ffcc66');
       } else if (!state.scanFrames) {
         setStatus('摄像头没有输出画面（可能选到了前置摄像头或被占用）→ 点「换个扫码方式」', '#ff6b6b');
       } else if (desk) {
@@ -694,7 +809,13 @@
       return;
     }
     stopScan();
+    // 关键：先把自己屏幕上的二维码收起来！
+    // 房主扫客机回码时，自己的二维码浮层是全屏近不透明的（rgba(6,8,10,.96)），
+    // 而 iOS/安卓的原生相机预览都插在 WebView **下面** —— 不收起来就等于
+    // 拿自己的二维码糊住取景画面，还容易被摄像头读到自己屏幕上的那张码。
+    hideQr();
     state.scanning = true;
+    state.scanHandled = false;
     state.scanFrames = 0;
     show(ui.camBox, true);
 
@@ -734,6 +855,15 @@
   }
 
   function onScanned(payload, purpose) {
+    // 只认第一张：原生扫码回调会连发多次（安卓/iOS 的插件都要同一个码凑够多帧才回调，
+    // 但事件到达 JS 的顺序不保证），处理两次就会出现
+    //   Failed to set remote answer sdp: Called in wrong state: stable
+    // 这种"明明扫上了却报错"的怪象。传输层也做了幂等，这里是第一道闸。
+    if (state.scanHandled) {
+      log('重复的扫码回调已忽略（原生回调可能连发多次）', '#ffcc66');
+      return;
+    }
+    state.scanHandled = true;
     setStatus('已识别二维码，正在处理…', '#9fe8ff');
     if (purpose === 'host-answer') {
       P.hostAcceptPeer(payload)
@@ -794,9 +924,15 @@
 
   function onHost() {
     state.role = 'host'; state.stage = 'offered';
-    setStatus('正在生成 Offer 并收集局域网候选…', '#ffcc66');
+    setStatus(state.mode === 'qr'
+      ? '正在申请摄像头权限（扫码本来就要用，同时能让对方拿到你的真实内网地址）…'
+      : '正在生成 Offer 并收集候选…', '#ffcc66');
     refreshButtons();
-    P.hostBegin({ mode: state.mode, room: roomName() })
+    // 模式A 一定要在**出码之前**拿到摄像头权限：
+    // 浏览器/WebView 只有在页面获得摄像头权限后才会放弃 mDNS 混淆，
+    // 否则 Offer 里全是 xxxx.local，对方解析不了 —— 表现就是
+    // "客机扫上了、回码也贴上了，但一直卡在等待直连"。
+    P.hostBegin({ mode: state.mode, room: roomName(), unobfuscated: state.mode === 'qr' })
       .then(function (r) {
         ui.offer.value = r.payload;
         state.hint = r.hint;
@@ -877,9 +1013,30 @@
   function afterClientAnswerReady() {
     state.stage = 'answered';
     // 交给游戏原逻辑：joinGame -> new Peer -> connect() -> 通道打开后开始同步
-    if (typeof window.joinGame === 'function') window.joinGame(roomName());
-    else setStatus('未找到 window.joinGame（lan_bridge.js 没加载？）', '#ff6b6b');
+    // 用会话对象去重：同一个会话重复调 joinGame 会多挂一套监听；
+    // 但换了会话（重新加入）必须重新调，否则游戏侧还挂在旧会话上。
+    var cur = P.currentClient ? P.currentClient() : null;
+    if (state.joinedSession === cur) {
+      log('同一个客机会话已经接过游戏侧，跳过重复 joinGame', '#ffcc66');
+    } else if (typeof window.joinGame === 'function') {
+      state.joinedSession = cur;
+      window.joinGame(roomName());
+    } else {
+      setStatus('未找到 window.joinGame（lan_bridge.js 没加载？）', '#ff6b6b');
+    }
     refreshButtons();
+    startConnectWatchdog('client');
+  }
+
+  /** 握手完成后 20 秒还没连上，就把"为什么"直接打给用户看（别再让人干等） */
+  function startConnectWatchdog(role) {
+    if (state.connectWatchdog) clearTimeout(state.connectWatchdog);
+    state.connectWatchdog = setTimeout(function () {
+      if (state.stage === 'connected') return;
+      var d = P.diagnose(role);
+      log('20 秒仍未连上 —— 诊断：' + d, '#ff6b6b');
+      setStatus('还没连上。诊断：' + d, '#ffcc66');
+    }, 20000);
   }
 
   function onAcceptAnswer() {
@@ -895,15 +1052,18 @@
         // 通道可能在 hostAcceptPeer 返回前就已经打开并触发过"已连接"，
         // 这里不能再覆盖掉那条更新的状态
         if (state.stage !== 'connected') setStatus('已应用 Answer，等待直连…', '#7bd88f');
+        startConnectWatchdog('host');
       })
       .catch(function (e) { setStatus('建立连接失败：' + describeErr(e), '#ff6b6b'); });
   }
 
   function onCancel() {
     stopScan();
+    if (state.connectWatchdog) { clearTimeout(state.connectWatchdog); state.connectWatchdog = null; }
     P.cancel();
     try { if (typeof window.leaveRoom === 'function' && state.stage === 'connected') window.leaveRoom(); } catch (e) {}
     state.role = null; state.stage = 'idle';
+    state.scanHandled = false; state.joinedSession = null;
     hideQr(); show(ui.camBox, false);
     ui.offer.value = ''; ui.answer.value = '';
     setStatus('已取消', '#ffcc66');
@@ -917,6 +1077,7 @@
     map[P.ERR.PARSE] = '握手串解析失败（可能复制不完整或被聊天软件改写）';
     map[P.ERR.TIMEOUT] = '等待对端超时';
     map[P.ERR.CAMERA] = '摄像头不可用';
+    map[P.ERR.STALE_HANDSHAKE] = '这张回码已经过期（房间被重新创建过）—— 请让客机重新扫一次当前显示的二维码';
     return (e && e.code && map[e.code]) ? (map[e.code] + '（' + e.message + '）') : ((e && e.message) || String(e));
   }
 
@@ -950,6 +1111,12 @@
       if (d.role === 'host') { ui.offer.value = d.payload; if (state.mode === 'qr') renderQr(d.payload); }
       else { ui.answer.value = d.payload; if (state.mode === 'qr') renderQr(d.payload); }
       log((d.role === 'host' ? 'Offer' : 'Answer') + ' 握手串就绪：' + d.fit.chars + ' 字符', '#7bd88f');
+      // 异地文本模式：没有公网候选就直说，别让用户干等
+      if (state.mode === 'text' && d.iceStats && d.iceStats.srflx === 0) {
+        log('⚠️ STUN 全部没响应：只拿到内网/mDNS 候选，异地联机基本连不上', '#ff6b6b');
+        setStatus('已生成，但⚠️ 没有公网候选（STUN 全没响应）—— 异地大概率连不上：' +
+          '可让一方开手机热点、另一方连它；同一 Wi-Fi 请改用「面对面扫码联机」', '#ff6b6b');
+      }
     });
     // 用户点的是游戏原面板的"加入"：我们没拿到房主握手串，主动引导扫码/粘贴
     P.on('needsHostPayload', function (d) {
@@ -962,6 +1129,7 @@
     });
     P.on('connected', function (d) {
       state.stage = 'connected';
+      if (state.connectWatchdog) { clearTimeout(state.connectWatchdog); state.connectWatchdog = null; }
       setStatus('已连接！游戏同步已开始（' + (d.role === 'host' ? '房主' : '客机') + '）', '#7bd88f');
       stopScan();
       hideQr();

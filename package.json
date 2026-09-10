@@ -4,6 +4,7 @@
   "private": true,
   "description": "Mini DAYZ 双模式零服务器 WebRTC 联机改造（模式A 二维码 / 模式B 文本SDP）；web/ 内是游戏本体副本，lan_bridge.js 与 mp_*.js 保持与原版逐字节一致",
   "scripts": {
+    "postinstall": "node tools/patch-mlkit-votes.js",
     "web": "python -m http.server 8765 --directory web",
     "vendor": "node tools/make-vendor.js",
     "test": "node test/run-all.js",

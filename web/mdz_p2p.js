@@ -35,10 +35,13 @@
     CH_RELIABLE: 'mdz_game_sync',
     CH_FAST: 'mdz_fast',
     // 实测可用（2026-09 本机 STUN Binding 探测）：stun.qq.com 已失效，故不采用
+    // 多给几个：异地联机只要有一个 STUN 通就能拿到 srflx 候选，多一个多一分成功率
     STUN_TEXT: [
       'stun:stun.miwifi.com:3478',
       'stun:stun.chat.bilibili.com:3478',
-      'stun:stun.hitv.com:3478'
+      'stun:stun.hitv.com:3478',
+      'stun:stun.l.google.com:19302',
+      'stun:stun.cloudflare.com:3478'
     ],
     ICE_TIMEOUT_QR: 6000,     // 局域网只有 host 候选，收敛很快
     ICE_TIMEOUT_TEXT: 12000,  // 要等 STUN 反射候选
@@ -53,7 +56,8 @@
     PARSE: 'MDZ_E_PARSE',
     TIMEOUT: 'MDZ_E_TIMEOUT',
     CAMERA: 'MDZ_E_CAMERA',
-    STATE: 'MDZ_E_STATE'
+    STATE: 'MDZ_E_STATE',
+    STALE_HANDSHAKE: 'MDZ_E_STALE'   // 回码对应的房主会话已经过期/已换新
   };
 
   function nowts() { return new Date().toLocaleTimeString('zh-CN', { hour12: false }); }
@@ -124,7 +128,11 @@
     if (rtc.RTCSessionDescription && !(desc instanceof Object && desc.constructor === rtc.RTCSessionDescription)) {
       try { d = new rtc.RTCSessionDescription(desc); } catch (e) { d = desc; }
     }
-    return Promise.resolve(pc.setRemoteDescription(d));
+    // 浏览器里状态不对是 reject；但有些实现（和我们的测试替身）会同步 throw，
+    // 这里统一成 reject，免得异常穿过 Promise 链把调用方搞乱。
+    return new Promise(function (resolve, reject) {
+      try { resolve(pc.setRemoteDescription(d)); } catch (e) { reject(e); }
+    });
   }
 
   function looksLikePc(obj) {
@@ -281,25 +289,72 @@
 
     return Promise.resolve(pc.createOffer())
       .then(function (offer) { return pc.setLocalDescription(offer); })
-      .then(function () { return waitIceComplete(pc, self.iceTimeoutMs, self.log); })
+      .then(function () { self._localOfferApplied = true; return waitIceComplete(pc, self.iceTimeoutMs, self.log); })
       .then(function () { return self._finishHandshake(); });
   };
 
   MdzSession.prototype.acceptOffer = function (offerDesc) {
     var self = this;
+
+    // 同一张房主二维码被扫两次时（原生扫码回调会连发多次、用户也可能连点两次按钮），
+    // 直接复用上次已经生成的 Answer。否则第二遍 setRemoteDescription(offer) 会抛
+    // "Called in wrong state"，把本来已经走通的握手搅黄。
+    if (this._localAnswerApplied && this._lastAnswerPayload) {
+      this.log('重复的房主二维码（本机已生成过 Answer），复用上次的 Answer');
+      return Promise.resolve(this._lastAnswerPayload);
+    }
+
     var pc = this.pc || this._createPc();
     return setRemote(pc, offerDesc, this.rtc)
       .then(function () { return pc.createAnswer(); })
       .then(function (answer) { return pc.setLocalDescription(answer); })
-      .then(function () { return waitIceComplete(pc, self.iceTimeoutMs, self.log); })
-      .then(function () { return self._finishHandshake(); });
+      .then(function () {
+        self._localAnswerApplied = true;
+        return waitIceComplete(pc, self.iceTimeoutMs, self.log);
+      })
+      .then(function () {
+        // 注意：_finishHandshake 是同步函数（返回握手串，也可能直接抛 NO_CANDIDATES）
+        var payload = self._finishHandshake();
+        self._lastAnswerPayload = payload;
+        return payload;
+      });
   };
 
   MdzSession.prototype.acceptAnswer = function (answerDesc) {
     var self = this;
     var pc = this.pc;
-    if (!pc) return Promise.reject(err(ERR.STATE, '还没生成 Offer，无法接受 Answer'));
+    if (!pc) {
+      // 会话还在、但连 Offer 都没生成过：多半是房间被重建了（当前显示的是新二维码）
+      var noOffer = err(ERR.STALE_HANDSHAKE,
+        '房主会话还没有生成 Offer（房间可能被重新创建过）—— 请让客机扫当前显示的最新二维码');
+      this.log('回码无法应用：' + noOffer.message);
+      return Promise.reject(noOffer);
+    }
+    var st = null;
+    try { st = pc.signalingState; } catch (e) {}
+
+    // ① 这张回码已经应用过了 —— 直接当成功返回。
+    //    真实踩到的坑：原生扫码回调会连发多次（插件要同一个码凑够 10 帧才回调，
+    //    而回调到达 JS 的顺序并不保证），第二遍 setRemoteDescription(answer) 必然抛
+    //      Failed to set remote answer sdp: Called in wrong state: stable
+    //    可那时候第一次其实已经成功了 —— 这条报错纯粹是噪音，绝不能让它把连接搞断。
+    if (this._remoteAnswerApplied) {
+      this.log('重复的客机回码（signalingState=' + st + '），已忽略，连接不受影响');
+      return Promise.resolve(pc);
+    }
+
+    // ② 手上没有"待回应的本地 Offer"：说明这张回码对应的是上一版房主会话
+    //    （最常见的原因：创建房间被点了两次 / 重新出过码，二维码已经换新）
+    if (st !== 'have-local-offer') {
+      var msg = this._localOfferApplied
+        ? '这张回码对应的房主会话已经完成过握手了（signalingState=' + st + '）—— 请让客机重新扫一次当前显示的二维码'
+        : '房主会话还没有生成 Offer（signalingState=' + st + '）—— 房间可能被重新创建过，请让客机扫最新二维码';
+      this.log('回码无法应用：' + msg);
+      return Promise.reject(err(ERR.STALE_HANDSHAKE, msg));
+    }
+
     return setRemote(pc, answerDesc, this.rtc).then(function () {
+      self._remoteAnswerApplied = true;
       self._analyze(pc.localDescription && pc.localDescription.sdp, 'local');
       self.log('已应用 Answer，等待直连建立…');
       return pc;
@@ -321,6 +376,20 @@
       }
     } else if (this.iceStats.srflx === 0) {
       this.log('提示：没有拿到公网反射候选（STUN 未响应），异地联机可能失败');
+    }
+
+    // 模式B（异地文本）是复制粘贴，没有任何长度限制：裁剪和候选瘦身只会白白丢掉
+    // "唯一能打通的那条候选"。异地 NAT 环境下每一条 srflx 都很珍贵，所以原样打包完整 SDP。
+    if (this.mode === 'text') {
+      if (this.iceStats.srflx === 0) {
+        this._srflxMissing = true;
+        this.log('⚠️ 没有拿到任何公网反射候选（srflx）：所有 STUN 都没响应，' +
+          '异地联机基本不可能成功 —— 请换网络（手机热点常能过）或改用带 TURN 的方案');
+      } else {
+        this.log('已在 ' + this.iceStats.srflx + ' 个公网候选上打包（文本模式保留完整 SDP，共 ' +
+          this.iceStats.total + ' 个候选）');
+      }
+      return Core.packSdp({ type: ld.type, sdp: ld.sdp });
     }
 
     var munged = Core.mungeSdp(ld.sdp);
@@ -463,6 +532,23 @@
       } : null,
       tx: this._stats
     };
+  };
+
+  /** 一句话说清"为什么连不上"，给 UI 直接展示（比让人猜强） */
+  MdzSession.prototype.diagnose = function () {
+    var st = this.iceStats || {};
+    var ice = this.pc ? this.pc.iceConnectionState : '无';
+    var conn = this.pc ? this.pc.connectionState : '无';
+    var s = '角色=' + this.role + ' 模式=' + this.mode + ' ICE=' + ice + '/' + conn +
+      ' 候选[总' + (st.total || 0) + ' 内网' + (st.lan || 0) + ' mDNS' + (st.mdns || 0) +
+      ' 公网' + (st.srflx || 0) + ' 中继' + (st.relay || 0) + ']';
+    if (this.mode === 'qr' && (st.lan || 0) === 0) {
+      s += ' → ❗只有 mDNS(.local) 候选：出码前没有授权摄像头，对方解析不了你的地址。' +
+        '解决：点「②b 授权摄像头后重出码」，或改用文本模式';
+    } else if (this.mode === 'text' && (st.srflx || 0) === 0) {
+      s += ' → ❗没有公网候选：STUN 全部没响应，异地必失败。换网络（手机热点）或需要 TURN 中继';
+    }
+    return s;
   };
 
   /** lan_bridge 的隐藏契约：mp_join 用它做发送背压 */
@@ -727,6 +813,7 @@
   function hostAcceptPeer(payloadStr) {
     var s = current.host;
     if (!s || s.role !== 'host') return Promise.reject(err(ERR.STATE, '当前没有等待握手的房主会话'));
+    if (s.open) { s.log('通道已经连上了，这张回码直接忽略'); return Promise.resolve(); }
     var desc;
     try { desc = Core.unpackSdp(payloadStr); }
     catch (e) { var pe = err(ERR.PARSE, '客机握手串解析失败：' + e.message); emit('error', pe); return Promise.reject(pe); }
@@ -881,6 +968,12 @@
     stats: function (role) {
       var s = role === 'client' ? current.client : (role === 'host' ? current.host : (current.host || current.client));
       return s ? s.stats() : null;
+    },
+
+    /** 一句话诊断（连不上时直接给用户看，别让人猜） */
+    diagnose: function (role) {
+      var s = role === 'client' ? current.client : (role === 'host' ? current.host : (current.host || current.client));
+      return (s && s.diagnose) ? s.diagnose() : '（当前没有会话）';
     },
 
     // 供测试/调试：把会话槽重置
