@@ -90,19 +90,31 @@ ok('--check 通过（两个平台的投票门槛都已是 3）', patchOk, patchO
 
 /* --------------------------------------------------- 构建标记（可验证版本） */
 section('G. 构建标记（手机上要能看到打开的是新版本）');
-ok('index.html 构建号已升到 web-3', /MDZ_BUILD = 'mdz-webrtc-web-3'/.test(html));
-ok('面板构建号已升到 ui-3', /var BUILD = 'mdz-ui-3'/.test(ui));
-ok('跨岛同步协调器已挂进 index.html', /<script src="mdz_island\.js"><\/script>/.test(html));
+ok('index.html 构建号已升到 web-4', /MDZ_BUILD = 'mdz-webrtc-web-4'/.test(html));
+ok('面板构建号已升到 ui-4', /var BUILD = 'mdz-ui-4'/.test(ui));
+ok('跨岛检测模块已挂进 index.html', /<script src="mdz_island\.js"><\/script>/.test(html));
 ok('诊断钩子已挂进 index.html', /<script src="mdz_diag\.js"><\/script>/.test(html));
+ok('命中兼容层已挂进 index.html', /<script src="mdz_hitfix\.js"><\/script>/.test(html));
 ok('面板提供「复制日志」（真机排查要把完整日志发出来）', /复制日志/.test(ui));
 {
   const diag = fs.readFileSync(path.join(ROOT, 'web', 'mdz_diag.js'), 'utf8');
   ok('诊断模块会接上 window.MDZTrace', /window\.MDZTrace\s*=/.test(diag));
   ok('诊断模块会汇报计数器变化', /snapshot\(\)/.test(diag) && /\[统计\]/.test(diag));
+
   const island = fs.readFileSync(path.join(ROOT, 'web', 'mdz_island.js'), 'utf8');
-  ok('跨岛协调器在加载时就挂事件监听（不依赖 DOMContentLoaded）',
-    /window\.addEventListener\('mdz-mp-world-ready'/.test(island) &&
-    !/function start\(\) \{[\s\S]{0,200}?addEventListener\('mdz-mp-world-ready'/.test(island));
+  ok('★ 跨岛模块**不再**重推世界快照（推快照会把房主的角色/背包带给客机，实测串装备）',
+    !/sendSnapshot/.test(island));
+  ok('跨岛模块改成"断开并提示重连"', /reconnectNow/.test(island) && /MDZP2P\.cancel/.test(island));
+  ok('跨岛模块在加载时就挂事件监听（不依赖 DOMContentLoaded）',
+    /window\.addEventListener\('mdz-mp-world-ready'/.test(island));
+
+  const hit = fs.readFileSync(path.join(ROOT, 'web', 'mdz_hitfix.js'), 'utf8');
+  ok('命中兼容层含 29 种弹种白名单判断', /WHITELIST/.test(hit) && /t192/.test(hit) && /t881/.test(hit));
+  ok('命中兼容层会校正命中点到房主权威坐标', /repairHitCoords/.test(hit) && /msg\.x = p\.x/.test(hit));
+  ok('命中兼容层会在房主侧补刷新客机位置（绕开 3 秒过期全拒）',
+    /refreshHostStalePos/.test(hit) && /MPEntities\.observe/.test(hit));
+  ok('面板的跨岛按钮改成"断开重连"而不是重推快照',
+    /跨岛后重连/.test(ui) && /reconnectNow/.test(ui));
 }
 
 console.log('\n--------------------------------------------------');

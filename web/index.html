@@ -159,12 +159,16 @@
     <script>MDZP2P.install(window);</script>
     <script src="lan_bridge.js"></script>
     <script src="mdz_ui.js"></script>
-    <!-- 跨岛/换图重同步协调器：放在最后，这样它运行时 MDZUI / MPJoin / MDZ 都已存在。
-         它只做协调（比对地图指纹、重推世界快照），不改游戏本体，也不碰 mp_*.js。 -->
+    <!-- 跨岛/换图：只做**检测 + 断开提示重连**。
+         ⚠️ 不要改成"重推整张世界快照"：C2 的存档会把房主的角色实例与背包一起带过来，
+         实测会把客机的装备换成房主的、且因为归属授权问题卸不下来。 -->
     <script src="mdz_island.js"></script>
     <!-- 诊断钩子：接上原 MOD 留的 window.MDZTrace，把授权/回滚/拒绝等内部事件
          摊进面板日志（默认没人实现 MDZTrace，这些关键信息原本是丢掉的）。 -->
     <script src="mdz_diag.js"></script>
+    <!-- 命中兼容层：客机打不到怪的成因是房主那 7 道校验（位置 120px、位置信息 3 秒过期…）。
+         这里把上报的命中点校正到房主权威坐标、并在房主侧补刷新客机位置，同时逐条打印判定结果。 -->
+    <script src="mdz_hitfix.js"></script>
 
     <script>
       /* ===================================================================
@@ -172,7 +176,7 @@
          如果控制台没有 "[MDZ] build …"，那这个页面是被 Service Worker
          或浏览器 HTTP 缓存住的旧 index.html（旧页面根本没有联机面板）。
          =================================================================== */
-      window.MDZ_BUILD = 'mdz-webrtc-web-3';
+      window.MDZ_BUILD = 'mdz-webrtc-web-4';
       console.log('%c[MDZ] build ' + window.MDZ_BUILD + ' 已加载（联机面板应出现在右上角）',
         'color:#3fb950;font-weight:bold');
 

@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  var BUILD = 'mdz-ui-3';
+  var BUILD = 'mdz-ui-4';
 
   /** 面板起不来时也要让用户"看得见"错误，而不是界面上一片空白 */
   function fatal(msg, detail) {
@@ -408,15 +408,18 @@
         (s.iceStats ? s.iceStats.total : 0) + '，收发 ' + s.tx.txMsgs + '/' + s.tx.rxMsgs) : '当前没有会话', '#9fe8ff');
     };
     foot.appendChild(ui.btnStats);
-    // 跨岛/换图同步：房主点=把当前世界重推给客机；客机点=请求房主的世界快照
-    ui.btnResync = el('button', BTN2_CSS, '重新同步地图');
+    // 跨岛：**不做热同步**（搬整张世界会把房主的角色/背包一起带过来），只提供"断开并重连"
+    ui.btnResync = el('button', BTN2_CSS, '跨岛后重连');
     ui.btnResync.onclick = function () {
       var I = window.MDZIsland;
-      if (!I) { setStatus('跨岛同步模块没加载（web/mdz_island.js 缺失？）', '#ff6b6b'); return; }
+      if (!I || typeof I.reconnectNow !== 'function') {
+        setStatus('跨岛模块没加载（web/mdz_island.js 缺失？）', '#ff6b6b');
+        return;
+      }
       var s = (typeof I.state === 'function') ? I.state() : {};
-      if (s.role === 'host') { setStatus('正在把当前世界重推给客机…', '#ffcc66'); I.pushNow(); }
-      else if (s.role === 'client') { setStatus('正在请求房主的世界快照…', '#ffcc66'); I.forceResync('手动点按钮'); }
-      else setStatus('还没联机：先创建/加入房间', '#ffcc66');
+      if (!s.role) { setStatus('还没联机：先创建/加入房间', '#ffcc66'); return; }
+      setStatus('正在断开联机…到同一个岛后重新连接（房主点①创建房间，客机点①加入房间）', '#ffcc66');
+      I.reconnectNow('手动点「跨岛后重连」');
     };
     foot.appendChild(ui.btnResync);
     ui.btnLog = el('button', BTN2_CSS, '清空日志');
@@ -1170,6 +1173,16 @@
         setStatus('摄像头权限被拒绝，已切到文本模式（用复制粘贴完成握手）', '#ff6b6b');
       }
       if (s.channel === 'closed') { setStatus('连接已断开', '#ff6b6b'); state.stage = 'idle'; refreshButtons(); }
+      // 跨岛/手动断开：把面板恢复成"可以重新创建/加入"的状态，
+      // 否则用户会卡在"已联机"的旧界面里点不动按钮。
+      if (s.stage === 'cancelled') {
+        stopScan();
+        if (state.connectWatchdog) { clearTimeout(state.connectWatchdog); state.connectWatchdog = null; }
+        state.role = null; state.stage = 'idle';
+        state.scanHandled = false; state.joinedSession = null;
+        hideQr();
+        refreshButtons();
+      }
     });
   }
 
