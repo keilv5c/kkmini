@@ -108,12 +108,14 @@ console.log('Mini DAYZ WebRTC —— 跨岛检测/断开重连测试');
   /* ------------------------------------------- 3. 客机：发现不一致 */
   section('3. 客机：发现和房主不在同一张地图 → 断开并提示重连');
   const c = makeEnv('client');
-  c.I.tick(); c.I.tick();
-  eq('没收到房主基准前不动作', c.calls.cancel, 0);
+  c.I.tick();                                  // 先跑一拍让协调器挂上通道（此时指纹未稳定）
+  // 防误判的做法：指纹必须先"去抖稳定"才拿来比对
   c.conn._cb({ __mdzIsland: { k: 'hb', h: 'HASH_HOST' } });
-  eq('第一次不一致只是记数（防误判）', c.calls.cancel, 0);
+  eq('还没采到稳定指纹时不判定（防误判）', c.calls.cancel, 0);
+  c.I.tick();
+  eq('已采到稳定指纹', !!c.I.state().myHash, true);
   c.conn._cb({ __mdzIsland: { k: 'hb', h: 'HASH_HOST' } });
-  eq('确认不一致后断开', c.calls.cancel, 1);
+  eq('指纹稳定后，收到不一致心跳即断开', c.calls.cancel, 1);
   eq('并发 bye 通知房主一起断', c.k(c.sent.length - 1), 'bye');
   eq('客机侧也没推快照', c.calls.snapshot, 0);
   ok('状态提示去同一个岛后重连', c.statuses.some((s) => s.indexOf('重新连接') >= 0));
@@ -126,10 +128,9 @@ console.log('Mini DAYZ WebRTC —— 跨岛检测/断开重连测试');
   eq('对齐后不动作', c2.calls.cancel, 0);
   c2.adv(10000);
   c2.setFp('HASH_C');
-  // 第 1 拍指纹刚变、还算"不稳定"，不计入；之后两拍都稳定且不一致才判定（防误判）
+  // 第 1 拍指纹刚变、还算"不稳定"，不计入；第 2 拍稳定且不一致就判定
   c2.I.tick();
   eq('刚变那一拍不计入不一致', c2.I.state().mismatchN, 0);
-  c2.I.tick();
   c2.I.tick();
   eq('本地换岛也会断开', c2.calls.cancel, 1);
   ok('日志点明是"你自己这边"', c2.logs.some((l) => l.indexOf('你自己这边') >= 0));

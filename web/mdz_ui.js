@@ -422,6 +422,39 @@
       I.reconnectNow('手动点「跨岛后重连」');
     };
     foot.appendChild(ui.btnResync);
+
+    // —— 稳定模式 / 模块开关（存 localStorage，改动立即生效，不用重装）——
+    var CFGM = window.MDZCFG;
+    var cfgBox = el('div', 'margin-top:6px;padding-top:5px;border-top:1px solid #2b3541;font-size:12px');
+    cfgBox.appendChild(el('div', 'opacity:.85;margin-bottom:3px', '稳定模式 / 模块开关（改动立即生效，不用重装）'));
+    if (!CFGM) {
+      cfgBox.appendChild(el('div', 'color:#ff9955', '配置模块没加载（web/mdz_cfg.js 缺失）'));
+    } else {
+      var cfgBoxes = {};
+      var cfgRow = el('div', '');
+      ['stable', 'island', 'diag', 'hitfix', 'players', 'storm'].forEach(function (k) {
+        var box = el('input'); box.type = 'checkbox';
+        box.checked = CFGM.isOn(k);
+        var lab = el('label', 'margin-right:9px;cursor:pointer;display:inline-block');
+        lab.appendChild(box);
+        lab.appendChild(el('span', '', ' ' + (CFGM.LABELS[k] || k)));
+        box.onchange = function () {
+          CFGM.set(k, box.checked);
+          setStatus('已' + (box.checked ? '开启' : '关闭') + '「' + (CFGM.LABELS[k] || k) + '」　当前：' + CFGM.describe(), '#9fe8ff');
+        };
+        cfgBoxes[k] = box;
+        cfgRow.appendChild(lab);
+      });
+      cfgBox.appendChild(cfgRow);
+      ui.btnCfgReset = el('button', BTN2_CSS, '恢复默认设置');
+      ui.btnCfgReset.onclick = function () {
+        var changed = CFGM.reset();
+        for (var k in cfgBoxes) if (cfgBoxes.hasOwnProperty(k)) cfgBoxes[k].checked = CFGM.isOn(k);
+        setStatus((changed.length ? '已恢复默认设置：' : '本来就是默认设置：') + CFGM.describe(), '#9fe8ff');
+      };
+      cfgBox.appendChild(ui.btnCfgReset);
+    }
+    panel.appendChild(cfgBox);
     ui.btnLog = el('button', BTN2_CSS, '清空日志');
     ui.btnLog.onclick = function () { state.log = []; if (ui.logBox) ui.logBox.textContent = ''; };
     foot.appendChild(ui.btnLog);

@@ -26,14 +26,27 @@
   var BUILD = 'mdz-island-2';
   var CFG = {
     mode: 'reconnect',       // 'reconnect' = 跨岛即断开并提示重连；'off' = 只诊断、不动连接
-    intervalMs: 6000,        // 指纹采样间隔（MDZ.fingerprint() 要遍历世界，降低频率可省电降温）
+    intervalMs: 5000,        // 指纹采样间隔（排查档）
+    stableIntervalMs: 8000,  // 指纹采样间隔（稳定模式/省电档）
     stableNeeded: 2,         // 连续多少次采样相同才算"稳定"（换图过程中会跳变）
     keepaliveMs: 15000,      // 房主即使没变化也定期广播（后加入的客机需要基准）
-    mismatchConfirm: 2,      // 客机连续几次"稳定但不一致"才判定跨岛（防误判）
+    mismatchConfirm: 1,      // 指纹已去抖，判定一次不一致即可（收到心跳会立刻复采，反应仍然快）
     debug: true,
     autoStart: true,
     now: null                // 测试可注入假时钟
   };
+
+  /* 配置中枢：稳定模式/开关（没有 MDZCFG 时按默认全开、按排查档频率） */
+  function cfgOn() {
+    try { return !window.MDZCFG || window.MDZCFG.isOn('island'); } catch (e) { return true; }
+  }
+  function cfgInterval(normal, stable) {
+    try { return (window.MDZCFG && window.MDZCFG.interval) ? window.MDZCFG.interval(normal, stable) : normal; }
+    catch (e) { return normal; }
+  }
+  function cfgStable() {
+    try { return !!(window.MDZCFG && window.MDZCFG.isStable && window.MDZCFG.isStable()); } catch (e) { return false; }
+  }
 
   function now() { return (typeof CFG.now === 'function') ? CFG.now() : Date.now(); }
   function short(h) { return h ? String(h).slice(0, 6) : '?'; }
@@ -151,7 +164,14 @@
     if (st.role !== 'client' || st.aborted) return;
     var mine = st.fp && st.fp.h;
     if (!mine || !st.hostHash) return;
-    if (mine === st.hostHash) { st.mismatchN = 0; return; }
+    if (mine === st.hostHash) { st.mismatchN = 0; st.quickDoneFor = null; return; }
+    // 房主那边图变了 → 立刻补采一次自己的指纹（省电档下不必干等下一次定时采样）
+    if (st.quickDoneFor !== m.h) {
+      st.quickDoneFor = m.h;
+      if (!st.quickTimer) {
+        st.quickTimer = setTimeout(function () { st.quickTimer = null; st.stableN = 0; tick(); }, 300);
+      }
+    }
     st.mismatchN++;
     if (st.mismatchN >= CFG.mismatchConfirm) {
       islandChange('房主那张图是 ' + short(st.hostHash) + '，你是 ' + short(mine));
@@ -252,11 +272,15 @@
 
   function start() {
     if (st.timer) return;
-    if (CFG.autoStart) st.timer = setInterval(tick, CFG.intervalMs);
-    log('跨岛检测就绪（' + BUILD + '，模式=' + CFG.mode +
-      '：检测到跨岛就断开并提示重连，不做热同步）', '#9fe8ff');
+    if (!cfgOn()) { log('跨岛检测已在设置里关闭，不启动', '#ffcc66'); return; }
+    var ms = cfgInterval(CFG.intervalMs, CFG.stableIntervalMs);
+    st.effInterval = ms;
+    if (CFG.autoStart) st.timer = setInterval(tick, ms);
+    log('跨岛检测就绪（' + BUILD + '，模式=' + CFG.mode + '，采样 ' + ms + 'ms' +
+      (cfgStable() ? '，省电档' : '') + '：检测到跨岛就断开并提示重连，不做热同步）', '#9fe8ff');
   }
   function stop() { if (st.timer) { clearInterval(st.timer); st.timer = null; } }
+  function restartByCfg() { stop(); start(); }
 
   window.MDZIsland = {
     BUILD: BUILD,
@@ -280,6 +304,11 @@
       };
     }
   };
+
+  // 配置变化（稳定模式开关/模块开关）→ 按新设置重启定时器
+  try {
+    if (window.MDZCFG && window.MDZCFG.onChange) window.MDZCFG.onChange(restartByCfg);
+  } catch (e) { /* 忽略 */ }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();

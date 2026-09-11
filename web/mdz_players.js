@@ -45,6 +45,10 @@
   }
   function log(m, c) { if (CFG.debug) ui('log', m, c); }
 
+  function cfgOn() {
+    try { return !window.MDZCFG || window.MDZCFG.isOn('players'); } catch (e) { return true; }
+  }
+
   var st = {
     mine: null, mineItems: null, afterItems: null,
     pushed: 0, checks: 0, lastRestored: null, errors: 0
@@ -126,6 +130,7 @@
   // 事件监听在加载时就挂（且必须比 mp_players 晚注册 → 后执行 → 覆盖它的检查点）
   try {
     window.addEventListener('mdz-mp-before-client-snapshot', function () {
+      if (!cfgOn()) return;                            // 设置里关掉了就完全不参与
       pushMyState();                                  // 同步！不要 setTimeout
       setTimeout(compareAfter, CFG.compareAfterMs);   // 等 MOD 恢复流程走完再比对
     });

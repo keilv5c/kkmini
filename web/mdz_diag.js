@@ -17,13 +17,26 @@
 
   var BUILD = 'mdz-diag-1';
   var CFG = {
-    intervalMs: 6000,          // 降低轮询频率（手机发热；stats() 会遍历实体）
+    intervalMs: 6000,          // 采样间隔（排查档；手机发热）
+    stableIntervalMs: 20000,   // 采样间隔（稳定模式/省电档）
+    heavyEvery: 2,             // MPEntities.stats() 最贵（要序列化全部实体），隔次采
     debug: true,
     autoStart: true,
     maxTraces: 300,
     // 这些字段一直在变、没有诊断价值，不报
     ignoreKey: /At$|Time$|sequence|revision|hash|buffered/i
   };
+
+  function cfgOn() {
+    try { return !window.MDZCFG || window.MDZCFG.isOn('diag'); } catch (e) { return true; }
+  }
+  function cfgInterval(normal, stable) {
+    try { return (window.MDZCFG && window.MDZCFG.interval) ? window.MDZCFG.interval(normal, stable) : normal; }
+    catch (e) { return normal; }
+  }
+  function cfgStable() {
+    try { return !!(window.MDZCFG && window.MDZCFG.isStable && window.MDZCFG.isStable()); } catch (e) { return false; }
+  }
 
   function ui(action, a, b) {
     try {
@@ -39,6 +52,7 @@
   var traces = [];
   var prev = null;
   var timer = null;
+  var tickN = 0;
 
   /* ---------------------------------------------- 1. 接上 MOD 的 trace 钩子 */
   function formatTrace(evt, data) {
@@ -103,9 +117,10 @@
   /* ------------------------------------- 2. 定时汇报各模块计数器的变化 */
   var MODULES = ['MPJoin', 'MPWorldState', 'MPEntities', 'MPPlayers', 'MPInteractions', 'MDZIsland'];
 
-  function snapshot() {
+  function snapshot(skipHeavy) {
     var out = {};
     MODULES.forEach(function (name) {
+      if (skipHeavy && name === 'MPEntities') return;   // 最贵的一个：隔次采样
       var m = window[name];
       if (!m) return;
       // MDZIsland 是我们自己的模块，用 state()
@@ -127,7 +142,8 @@
 
   function tick() {
     mirrorMessages();          // appendMsg 可能比我们晚定义，每次 tick 都试一下
-    var now = snapshot();
+    tickN++;
+    var now = snapshot(CFG.heavyEvery > 1 && (tickN % CFG.heavyEvery) !== 0);
     if (prev) {
       var changes = [];
       Object.keys(now).forEach(function (k) {
@@ -145,12 +161,15 @@
 
   function start() {
     if (timer) return;
-    if (CFG.autoStart) timer = setInterval(tick, CFG.intervalMs);
+    if (!cfgOn()) { log('诊断已在设置里关闭，不启动', '#ffcc66'); return; }
+    var ms = cfgInterval(CFG.intervalMs, CFG.stableIntervalMs);
+    if (CFG.autoStart) timer = setInterval(tick, ms);
     var have = MODULES.filter(function (n) { return !!window[n]; });
-    log('诊断模块就绪（' + BUILD + '）：可见模块 ' + (have.join(',') || '无') +
-      '；日志可点「复制日志」发出来', '#9fe8ff');
+    log('诊断模块就绪（' + BUILD + '，采样 ' + ms + 'ms' + (cfgStable() ? '，省电档' : '') +
+      '）：可见模块 ' + (have.join(',') || '无') + '；日志可点「复制日志」发出来', '#9fe8ff');
   }
   function stop() { if (timer) { clearInterval(timer); timer = null; } }
+  function restartByCfg() { stop(); start(); }
 
   window.MDZDiag = {
     BUILD: BUILD,
@@ -164,5 +183,9 @@
   };
 
   installTrace();
+  // 配置变化（稳定模式/模块开关）→ 按新设置重启
+  try {
+    if (window.MDZCFG && window.MDZCFG.onChange) window.MDZCFG.onChange(restartByCfg);
+  } catch (e) { /* 忽略 */ }
   start();
 })();

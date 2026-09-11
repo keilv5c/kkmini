@@ -124,10 +124,22 @@ ok('面板提供「复制日志」（真机排查要把完整日志发出来）'
   ok('风暴刹车用 reset + setSender 重新拉取全量 bushes',
     /reset\(\)/.test(storm) && /setSender/.test(storm) && /mp_bush_request/.test(storm));
   ok('风暴刹车只在客机侧动手', /st\.role !== 'client'/.test(storm));
-  ok('自己的轮询已降频（发热）',
-    /intervalMs: 6000/.test(fs.readFileSync(path.join(ROOT, 'web', 'mdz_island.js'), 'utf8')) &&
-    /intervalMs: 6000/.test(diag) &&
-    /intervalMs: 4000/.test(hit));
+
+  const cfg = fs.readFileSync(path.join(ROOT, 'web', 'mdz_cfg.js'), 'utf8');
+  ok('配置中枢已挂进 index.html 且排在功能模块之前',
+    html.indexOf('mdz_cfg.js') > 0 && html.indexOf('mdz_cfg.js') < html.indexOf('mdz_island.js'));
+  ok('配置中枢支持稳定模式 + 逐模块开关 + localStorage',
+    /stable: true/.test(cfg) && /localStorage/.test(cfg) && /onChange/.test(cfg));
+  ok('五个功能模块都受配置中枢控制（isOn/isStable）',
+    /MDZCFG\.isOn\('island'\)/.test(island) && /MDZCFG\.isOn\('diag'\)/.test(diag) &&
+    /MDZCFG\.isOn\('hitfix'\)/.test(hit) && /MDZCFG\.isOn\('players'\)/.test(ply) &&
+    /MDZCFG\.isOn\('storm'\)/.test(storm));
+  ok('面板有稳定模式/模块开关与恢复默认',
+    /恢复默认设置/.test(ui) && /稳定模式 \/ 模块开关/.test(ui));
+  ok('自己的轮询有省电档（稳定模式用更长间隔）',
+    /stableIntervalMs: 8000/.test(island) && /stableIntervalMs: 20000/.test(diag));
+  ok('命中日志已聚合节流（不再每条刷屏）',
+    /hitLogThrottleMs/.test(hit) && /flushHitAgg/.test(hit));
   ok('命中兼容层含 29 种弹种白名单判断', /WHITELIST/.test(hit) && /t192/.test(hit) && /t881/.test(hit));
   ok('命中兼容层会校正命中点到房主权威坐标', /repairHitCoords/.test(hit) && /msg\.x = p\.x/.test(hit));
   ok('命中兼容层会在房主侧补刷新客机位置（绕开 3 秒过期全拒）',

@@ -44,11 +44,16 @@
     hostArbitratedDamage: true,
     zeroHitHintMs: 30000,      // 客机 30 秒一次命中都没上报就提示（帮我们判断是不是压根没触发）
     ackLogThrottleMs: 2000,    // 交互被拒日志的节流
+    hitLogThrottleMs: 2000,    // 命中日志节流：前 3 条逐条打，之后每 2 秒聚合成一行（省电、也更易读）
     posFreshMs: 3000,
     staleMs: 2500,
     debug: true,
     autoStart: true
   };
+
+  function cfgOn() {
+    try { return !window.MDZCFG || window.MDZCFG.isOn('hitfix'); } catch (e) { return true; }
+  }
 
   // mp_entities.js 里的弹种白名单（_xe5a），不在表里的弹种房主一定拒
   var WHITELIST = {
@@ -77,8 +82,27 @@
     hits: 0, repaired: 0, refreshed: 0, deaths: 0,
     worldReady: false, damageModeSet: false,
     lastZeroHintAt: 0, lastAckLogAt: 0, bushRejects: 0,
+    hitAgg: { applied: 0, rejected: 0, sent: 0 },
+    lastHitLogAt: 0, sentLogged: 0,
     timer: null
   };
+
+  /** 命中日志聚合：前 3 条逐条打，之后每 hitLogThrottleMs 聚合成一行 */
+  function flushHitAgg() {
+    var t = Date.now();
+    if (t - st.lastHitLogAt < CFG.hitLogThrottleMs) return;
+    st.lastHitLogAt = t;
+    var a = st.hitAgg.applied, r = st.hitAgg.rejected, s = st.hitAgg.sent;
+    st.hitAgg.applied = 0; st.hitAgg.rejected = 0; st.hitAgg.sent = 0;
+    var secs = Math.round(CFG.hitLogThrottleMs / 1000);
+    if (st.role === 'host') {
+      if (!a && !r) return;
+      log('命中判定（近 ' + secs + ' 秒）：✅ 房主结算 ' + a + ' 条，❌ 被拒 ' + r + ' 条' +
+        (r && !a ? ' ← 全被拒，把这行发我' : ''), a ? '#7bd88f' : '#ff9955');
+    } else if (s) {
+      log('已上报命中 ' + s + ' 条（近 ' + secs + ' 秒）', '#9fe8ff');
+    }
+  }
 
   function roleNow() {
     try {
@@ -181,8 +205,15 @@
     else if (dR > 0) verdict = '❌ 被房主拒绝（这一条等于白打）';
     else verdict = first ? '（首次记录，累计值）' : '？没看到结算/拒绝计数变化';
 
-    log('收到客机命中：弹种=' + msg.bulletType + (inList ? '（在白名单 ✓）' : '（⚠ 不在白名单，必被拒）') +
-      ' → ' + verdict, dA > 0 ? '#7bd88f' : '#ff9955');
+    // 前 3 条逐条打（用来确认整条链路通），之后聚合成一行，避免刷屏与额外开销
+    if (st.hits <= 3 || !inList) {
+      log('收到客机命中：弹种=' + msg.bulletType + (inList ? '（在白名单 ✓）' : '（⚠ 不在白名单，必被拒）') +
+        ' → ' + verdict, dA > 0 ? '#7bd88f' : '#ff9955');
+    } else {
+      st.hitAgg.applied += Math.max(0, dA);
+      st.hitAgg.rejected += Math.max(0, dR);
+      flushHitAgg();
+    }
 
     // ⑥ 客机位置过期会让**所有**命中被拒 —— 用我们观察到的最近位置补刷新一次
     if (CFG.refreshHostStalePos) {
@@ -218,10 +249,16 @@
               msg.x = p.x; msg.y = p.y;
             }
           }
-          log('上报命中：弹种=' + msg.bulletType + (inList ? '（白名单 ✓）' : '（⚠ 不在白名单，房主必拒）') +
-            (dist === null ? '（没有房主侧坐标可校正）'
-              : (dist > 1 ? '（命中点按房主权威坐标校正了 ' + Math.round(dist) + 'px）' : '（与房主坐标一致）')),
-            inList ? '#9fe8ff' : '#ff9955');
+          st.hitAgg.sent++;
+          if (st.sentLogged < 3 || !inList) {
+            st.sentLogged++;
+            log('上报命中：弹种=' + msg.bulletType + (inList ? '（白名单 ✓）' : '（⚠ 不在白名单，房主必拒）') +
+              (dist === null ? '（没有房主侧坐标可校正）'
+                : (dist > 1 ? '（命中点按房主权威坐标校正了 ' + Math.round(dist) + 'px）' : '（与房主坐标一致）')),
+              inList ? '#9fe8ff' : '#ff9955');
+          } else {
+            flushHitAgg();
+          }
         }
       } catch (e) { /* 改写失败就用原包发出去，不影响游戏 */ }
       return orig.apply(conn, arguments);
@@ -298,10 +335,12 @@
 
   function start() {
     if (st.timer) return;
+    if (!cfgOn()) { log('命中兼容层已在设置里关闭，不启动', '#ffcc66'); return; }
     if (CFG.autoStart) st.timer = setInterval(tick, CFG.intervalMs);
-    log('命中兼容层就绪（' + BUILD + '）', '#9fe8ff');
+    log('命中兼容层就绪（' + BUILD + '，轮询 ' + CFG.intervalMs + 'ms）', '#9fe8ff');
   }
   function stop() { if (st.timer) { clearInterval(st.timer); st.timer = null; } }
+  function restartByCfg() { stop(); start(); }
 
   window.MDZHit = {
     BUILD: BUILD,
@@ -326,6 +365,10 @@
   // 世界就绪事件在加载时就挂（不依赖 DOMContentLoaded 时序）
   try {
     window.addEventListener('mdz-mp-world-ready', function () { st.worldReady = true; });
+  } catch (e) { /* 忽略 */ }
+  // 配置变化（稳定模式/模块开关）→ 按新设置重启
+  try {
+    if (window.MDZCFG && window.MDZCFG.onChange) window.MDZCFG.onChange(restartByCfg);
   } catch (e) { /* 忽略 */ }
 
   start();

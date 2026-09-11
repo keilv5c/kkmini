@@ -159,6 +159,9 @@
     <script>MDZP2P.install(window);</script>
     <script src="lan_bridge.js"></script>
     <script src="mdz_ui.js"></script>
+    <!-- 配置中枢：稳定模式（省电档）+ 逐模块开关，存 localStorage、改动立即生效。
+         必须排在下面几个增强模块之前。 -->
+    <script src="mdz_cfg.js"></script>
     <!-- 跨岛/换图：只做**检测 + 断开提示重连**。
          ⚠️ 不要改成"重推整张世界快照"：C2 的存档会把房主的角色实例与背包一起带过来，
          实测会把客机的装备换成房主的、且因为归属授权问题卸不下来。 -->

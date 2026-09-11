@@ -130,10 +130,15 @@
 
   function start() {
     if (st.timer) return;
+    if (!cfgOn()) { log('风暴刹车已在设置里关闭，不启动', '#ffcc66'); return; }
     if (CFG.autoStart) st.timer = setInterval(tick, CFG.intervalMs);
-    log('风暴刹车就绪（' + BUILD + '）：检测到交互请求风暴会重置并重新拉取 bushes', '#9fe8ff');
+    log('风暴刹车就绪（' + BUILD + '，轮询 ' + CFG.intervalMs + 'ms）：检测到交互请求风暴会重置并重新拉取 bushes', '#9fe8ff');
   }
   function stop() { if (st.timer) { clearInterval(st.timer); st.timer = null; } }
+  function restartByCfg() { stop(); start(); }
+  function cfgOn() {
+    try { return !window.MDZCFG || window.MDZCFG.isOn('storm'); } catch (e) { return true; }
+  }
 
   window.MDZStorm = {
     BUILD: BUILD,
@@ -149,6 +154,11 @@
       };
     }
   };
+
+  // 配置变化（模块开关）→ 按新设置重启
+  try {
+    if (window.MDZCFG && window.MDZCFG.onChange) window.MDZCFG.onChange(restartByCfg);
+  } catch (e) { /* 忽略 */ }
 
   start();
 })();
