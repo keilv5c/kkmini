@@ -100,6 +100,8 @@ ok('面板提供「复制日志」（真机排查要把完整日志发出来）'
   const diag = fs.readFileSync(path.join(ROOT, 'web', 'mdz_diag.js'), 'utf8');
   ok('诊断模块会接上 window.MDZTrace', /window\.MDZTrace\s*=/.test(diag));
   ok('诊断模块会汇报计数器变化', /snapshot\(\)/.test(diag) && /\[统计\]/.test(diag));
+  ok('诊断模块会镜像游戏内提示消息（character checkpoint restored 等）',
+    /mirrorMessages/.test(diag) && /window\.appendMsg/.test(diag));
 
   const island = fs.readFileSync(path.join(ROOT, 'web', 'mdz_island.js'), 'utf8');
   ok('★ 跨岛模块**不再**重推世界快照（推快照会把房主的角色/背包带给客机，实测串装备）',
@@ -109,6 +111,8 @@ ok('面板提供「复制日志」（真机排查要把完整日志发出来）'
     /window\.addEventListener\('mdz-mp-world-ready'/.test(island));
 
   const hit = fs.readFileSync(path.join(ROOT, 'web', 'mdz_hitfix.js'), 'utf8');
+  ok('命中兼容层会把客机切到「房主裁决伤害」模式（否则命中不上报）',
+    /hostArbitratedDamage/.test(hit) && /setLocalDamage\(false\)/.test(hit));
   ok('命中兼容层含 29 种弹种白名单判断', /WHITELIST/.test(hit) && /t192/.test(hit) && /t881/.test(hit));
   ok('命中兼容层会校正命中点到房主权威坐标', /repairHitCoords/.test(hit) && /msg\.x = p\.x/.test(hit));
   ok('命中兼容层会在房主侧补刷新客机位置（绕开 3 秒过期全拒）',

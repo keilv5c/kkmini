@@ -30,13 +30,22 @@
 (function () {
   'use strict';
 
-  var BUILD = 'mdz-hitfix-1';
+  var BUILD = 'mdz-hitfix-2';
   var CFG = {
     intervalMs: 2000,
     repairHitCoords: true,     // 命中点校正到房主权威坐标
     refreshHostStalePos: true, // 房主侧位置过期时刷新一次
-    posFreshMs: 3000,          // 缓存的实体坐标多久算新鲜
-    staleMs: 2500,             // 房主侧客机位置超过这个年龄就补刷新（MOD 的硬阈值是 3000）
+    // ★ 关键：把客机切到"房主裁决伤害"模式（MPEntities.setLocalDamage(false)）。
+    //   默认模式 localDamage=true（"co-op PvE"）不会冻结 damage dealing 组，
+    //   于是游戏自己的本地伤害逻辑会先把子弹吃掉，mod 每帧的命中上报根本来不及发生
+    //   → 客机一次命中都不上报 → 房主永远不知道你打中了（真机日志实测：0 次上报）。
+    //   切成 false 后：客机冻结 damage dealing（本地不再结算），子弹留得住，
+    //   上报链路才走得通；同时玩家受伤改成只由房主下发，避免双重扣血。
+    hostArbitratedDamage: true,
+    zeroHitHintMs: 30000,      // 客机 30 秒一次命中都没上报就提示（帮我们判断是不是压根没触发）
+    ackLogThrottleMs: 2000,    // 交互被拒日志的节流
+    posFreshMs: 3000,
+    staleMs: 2500,
     debug: true,
     autoStart: true
   };
@@ -66,6 +75,8 @@
     remotePos: null,        // 房主侧：客机最近一次 player_state（我们自己观察到的）
     lastC: { applied: 0, rejected: 0, sent: 0, initialized: false },
     hits: 0, repaired: 0, refreshed: 0, deaths: 0,
+    worldReady: false, damageModeSet: false,
+    lastZeroHintAt: 0, lastAckLogAt: 0, bushRejects: 0,
     timer: null
   };
 
@@ -125,6 +136,15 @@
           '（此后你再打它，房主会以 phase=dead 拒掉 —— 若你还看得到它在咬你，那就是死亡状态没同步干净）', '#ffcc66');
       } else if (t === 'damage' && obj.source === 'zombie') {
         log('你被僵尸打了：伤害=' + obj.amount + '（这条是房主直接下发的，没有客户端校验，所以必然生效）', '#ff6b6b');
+      } else if (t === 'mp_bush_pick_ack' && obj.accepted === false) {
+        // 真机日志里这个每秒来十几次 —— 两边 bushes 状态对不上时的"请求风暴"
+        st.bushRejects++;
+        var nowMs = Date.now();
+        if (nowMs - st.lastAckLogAt > CFG.ackLogThrottleMs) {
+          st.lastAckLogAt = nowMs;
+          log('交互请求被拒（累计 ' + st.bushRejects + ' 次，key=' + (obj.key || '?') +
+            '）—— 多半是两边 bushes 状态不一致', '#ff9955');
+        }
       }
     }
 
@@ -220,6 +240,36 @@
     return true;
   }
 
+  /* ----------------------------------------------------- 伤害模式（关键修复） */
+  function ensureDamageMode() {
+    if (st.damageModeSet || st.role !== 'client' || !CFG.hostArbitratedDamage || !st.worldReady) return;
+    var M = window.MPEntities;
+    if (!M || typeof M.setLocalDamage !== 'function') return;
+    st.damageModeSet = true;
+    var before = null;
+    try { if (typeof M.localDamage === 'function') before = M.localDamage(); } catch (e) { /* 忽略 */ }
+    if (before === false) { log('客机已经是"房主裁决伤害"模式（无需切换）', '#9fe8ff'); return; }
+    try {
+      M.setLocalDamage(false);
+      log('★ 已把客机切到「房主裁决伤害」模式（localDamage ' + before + ' → false）：' +
+        '客机不再本地结算、子弹不会被本地伤害逻辑提前吃掉，命中才能真正上报给房主', '#7bd88f');
+    } catch (e) {
+      log('切换伤害模式失败（保持默认）：' + ((e && e.message) || e), '#ff6b6b');
+    }
+  }
+
+  /** 客机 30 秒一次命中都没上报 → 明确提示（这条日志能直接分辨"没上报"还是"被拒"） */
+  function zeroHitHint() {
+    if (st.role !== 'client' || !st.worldReady) return;
+    var c = counters();
+    if (c.sent > 0 || c.applied > 0 || st.hits > 0) return;
+    var t = Date.now();
+    if (t - st.lastZeroHintAt < CFG.zeroHitHintMs) return;
+    st.lastZeroHintAt = t;
+    log('提示：客机就绪后一次命中都没上报（hitsSent=0）。若你此刻正在开枪打僵尸，' +
+      '说明本地压根没判定到：要么目标在房主那边已 dead，要么本地伤害逻辑先把子弹吃掉了', '#ffcc66');
+  }
+
   /* --------------------------------------------------------- 主循环 */
   function tick() {
     var r = roleNow();
@@ -227,11 +277,21 @@
       st.role = r; st.conn = null; st.attached = false;
       st.hostPos = {}; st.remotePos = null;
       st.lastC = { applied: 0, rejected: 0, sent: 0, initialized: false };
+      st.damageModeSet = false; st.worldReady = false;
+      st.lastZeroHintAt = Date.now();
       if (r) log('命中兼容层角色：' + r, '#9fe8ff');
     }
     if (!st.role) return { skip: 'no-role' };
     attach();
-    return { role: st.role, entities: Object.keys(st.hostPos).length };
+    if (!st.worldReady) {
+      try {
+        var s0 = window.MPEntities && window.MPEntities.stats && window.MPEntities.stats();
+        if (s0 && s0.worldReady) st.worldReady = true;
+      } catch (e) { /* 忽略 */ }
+    }
+    ensureDamageMode();
+    zeroHitHint();
+    return { role: st.role, entities: Object.keys(st.hostPos).length, damageModeSet: st.damageModeSet };
   }
 
   function start() {
@@ -252,13 +312,19 @@
     isAllowedAmmo: function (t) { return !!WHITELIST[t]; },
     state: function () {
       return {
-        role: st.role, attached: st.attached,
+        role: st.role, attached: st.attached, worldReady: st.worldReady,
+        damageModeSet: st.damageModeSet,
         knownEntities: Object.keys(st.hostPos).length,
         hitsSeen: st.hits, coordsRepaired: st.repaired, hostPosRefreshed: st.refreshed,
-        deathsSeen: st.deaths, counters: counters()
+        deathsSeen: st.deaths, bushRejects: st.bushRejects, counters: counters()
       };
     }
   };
+
+  // 世界就绪事件在加载时就挂（不依赖 DOMContentLoaded 时序）
+  try {
+    window.addEventListener('mdz-mp-world-ready', function () { st.worldReady = true; });
+  } catch (e) { /* 忽略 */ }
 
   start();
 })();

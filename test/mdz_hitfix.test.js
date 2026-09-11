@@ -34,12 +34,23 @@ function makeEnv(role) {
 
   let counters = { hitsApplied: 0, hitsRejected: 0, hitsSent: 0 };
   let remotePlayer = null;
+  let worldReady = false;
+  let localDamage = true;                  // MOD 默认 true（"co-op PvE"本地伤害）
   const observed = [];
   w.MPEntities = {
-    stats: () => ({ role: role, worldReady: true, counters: Object.assign({}, counters), remotePlayer: remotePlayer }),
+    stats: () => ({
+      role: role, worldReady: worldReady,
+      counters: Object.assign({}, counters), remotePlayer: remotePlayer
+    }),
     observe: (m) => {
       observed.push(m);
       if (m && m.type === 'player_state') remotePlayer = { x: m.x, y: m.y, receivedAt: Date.now() };
+    },
+    localDamage: () => localDamage,
+    setLocalDamage: (v) => {
+      localDamage = !!v;
+      observed.push({ type: '__setLocalDamage', v: localDamage });
+      return localDamage;
     }
   };
 
@@ -68,6 +79,8 @@ function makeEnv(role) {
     setRemote: (x, y, ageMs) => {
       remotePlayer = (x === null) ? null : { x: x, y: y, receivedAt: Date.now() - (ageMs || 0) };
     },
+    setWorldReady: (v) => { worldReady = !!v; },
+    setLocalDamage: (v) => { localDamage = !!v; },
     lastLog: () => logs[logs.length - 1] || '',
     anyLog: (re) => logs.some((l) => re.test(l))
   };
@@ -163,6 +176,40 @@ console.log('Mini DAYZ WebRTC —— 命中兼容层测试');
   h3.bump(1, 0);
   h3.feed({ type: 'mp_entity_hit', id: 'z9', bulletType: 't192', bulletUid: 6, x: 1, y: 2 });
   eq('没有多余的 observe', h3.observed.length, 0);
+
+  /* --------------------- 9. ★ 切到"房主裁决伤害"模式（真机日志发现的关键） */
+  section('9. ★ 客机切到「房主裁决伤害」模式（否则命中根本不上报）');
+  const dm = makeEnv('client');
+  dm.H.tick();
+  eq('世界没就绪时不切换', dm.H.state().damageModeSet, false);
+  dm.setWorldReady(true);
+  dm.H.tick();
+  eq('世界就绪后切换一次', dm.H.state().damageModeSet, true);
+  ok('确实调用了 setLocalDamage(false)',
+    dm.observed.some((o) => o.type === '__setLocalDamage' && o.v === false));
+  ok('日志说明了为什么要切', dm.anyLog(/房主裁决伤害/));
+
+  section('10. 已经是 false 就不重复切');
+  const dm2 = makeEnv('client');
+  dm2.setLocalDamage(false);
+  dm2.setWorldReady(true);
+  dm2.H.tick();
+  ok('没有重复调用 setLocalDamage', !dm2.observed.some((o) => o.type === '__setLocalDamage'));
+  ok('日志说明"已经是该模式"', dm2.anyLog(/已经是/));
+
+  section('11. 零上报提示（分辨"没上报"与"被拒"）');
+  const z = makeEnv('client');
+  z.H.CFG.zeroHitHintMs = 0;
+  z.setWorldReady(true);
+  z.H.tick();
+  ok('提示一次命中都没上报', z.anyLog(/一次命中都没上报/));
+
+  section('12. 交互请求被拒（请求风暴）也要能看见');
+  const b = makeEnv('client');
+  b.H.tick();
+  b.feed({ type: 'mp_bush_pick_ack', accepted: false, key: 'b1' });
+  eq('拒绝计数 +1', b.H.state().bushRejects, 1);
+  ok('日志提示两边状态不一致', b.anyLog(/交互请求被拒/));
 
   console.log('\n--------------------------------------------------');
   console.log(`结果: ${pass} 通过 / ${fail} 失败`);

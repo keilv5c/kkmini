@@ -81,6 +81,25 @@
     log('已接上 MOD 的调试钩子 MDZTrace（授权/回滚/拒绝都会记进面板日志）', '#7bd88f');
   }
 
+  /* ------------------------- 3. 镜像游戏/MOD 的提示消息（appendMsg） */
+  // 原 MOD 把关键结果发到 appendMsg（HUD 消息），例如：
+  //   "character checkpoint restored" / "host restore timed out; recovered the local checkpoint"
+  //   "inventory transaction rejected: <reason>" / "[Zeds] …"
+  // 这些**不会**进我们的面板日志，导致只能从"没出现"倒推（排查装备丢失时吃过大亏）。
+  function mirrorMessages() {
+    var old = window.appendMsg;
+    if (typeof old !== 'function') return false;
+    if (old.__mdzMirrored) return true;
+    var wrapped = function (msg) {
+      try { log('[游戏] ' + String(msg), '#c8d6e5'); } catch (e) { /* 忽略 */ }
+      return old.apply(this, arguments);
+    };
+    wrapped.__mdzMirrored = true;
+    window.appendMsg = wrapped;
+    log('已镜像游戏内提示消息（appendMsg → 面板日志）', '#7bd88f');
+    return true;
+  }
+
   /* ------------------------------------- 2. 定时汇报各模块计数器的变化 */
   var MODULES = ['MPJoin', 'MPWorldState', 'MPEntities', 'MPPlayers', 'MPInteractions', 'MDZIsland'];
 
@@ -107,6 +126,7 @@
   }
 
   function tick() {
+    mirrorMessages();          // appendMsg 可能比我们晚定义，每次 tick 都试一下
     var now = snapshot();
     if (prev) {
       var changes = [];
