@@ -90,8 +90,20 @@ ok('--check 通过（两个平台的投票门槛都已是 3）', patchOk, patchO
 
 /* --------------------------------------------------- 构建标记（可验证版本） */
 section('G. 构建标记（手机上要能看到打开的是新版本）');
-ok('index.html 构建号已升到 web-2', /MDZ_BUILD = 'mdz-webrtc-web-2'/.test(html));
-ok('面板构建号已升到 ui-2', /var BUILD = 'mdz-ui-2'/.test(ui));
+ok('index.html 构建号已升到 web-3', /MDZ_BUILD = 'mdz-webrtc-web-3'/.test(html));
+ok('面板构建号已升到 ui-3', /var BUILD = 'mdz-ui-3'/.test(ui));
+ok('跨岛同步协调器已挂进 index.html', /<script src="mdz_island\.js"><\/script>/.test(html));
+ok('诊断钩子已挂进 index.html', /<script src="mdz_diag\.js"><\/script>/.test(html));
+ok('面板提供「复制日志」（真机排查要把完整日志发出来）', /复制日志/.test(ui));
+{
+  const diag = fs.readFileSync(path.join(ROOT, 'web', 'mdz_diag.js'), 'utf8');
+  ok('诊断模块会接上 window.MDZTrace', /window\.MDZTrace\s*=/.test(diag));
+  ok('诊断模块会汇报计数器变化', /snapshot\(\)/.test(diag) && /\[统计\]/.test(diag));
+  const island = fs.readFileSync(path.join(ROOT, 'web', 'mdz_island.js'), 'utf8');
+  ok('跨岛协调器在加载时就挂事件监听（不依赖 DOMContentLoaded）',
+    /window\.addEventListener\('mdz-mp-world-ready'/.test(island) &&
+    !/function start\(\) \{[\s\S]{0,200}?addEventListener\('mdz-mp-world-ready'/.test(island));
+}
 
 console.log('\n--------------------------------------------------');
 console.log(`结果: ${pass} 通过 / ${fail} 失败`);

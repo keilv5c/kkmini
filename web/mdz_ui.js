@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  var BUILD = 'mdz-ui-2';
+  var BUILD = 'mdz-ui-3';
 
   /** 面板起不来时也要让用户"看得见"错误，而不是界面上一片空白 */
   function fatal(msg, detail) {
@@ -408,9 +408,28 @@
         (s.iceStats ? s.iceStats.total : 0) + '，收发 ' + s.tx.txMsgs + '/' + s.tx.rxMsgs) : '当前没有会话', '#9fe8ff');
     };
     foot.appendChild(ui.btnStats);
+    // 跨岛/换图同步：房主点=把当前世界重推给客机；客机点=请求房主的世界快照
+    ui.btnResync = el('button', BTN2_CSS, '重新同步地图');
+    ui.btnResync.onclick = function () {
+      var I = window.MDZIsland;
+      if (!I) { setStatus('跨岛同步模块没加载（web/mdz_island.js 缺失？）', '#ff6b6b'); return; }
+      var s = (typeof I.state === 'function') ? I.state() : {};
+      if (s.role === 'host') { setStatus('正在把当前世界重推给客机…', '#ffcc66'); I.pushNow(); }
+      else if (s.role === 'client') { setStatus('正在请求房主的世界快照…', '#ffcc66'); I.forceResync('手动点按钮'); }
+      else setStatus('还没联机：先创建/加入房间', '#ffcc66');
+    };
+    foot.appendChild(ui.btnResync);
     ui.btnLog = el('button', BTN2_CSS, '清空日志');
     ui.btnLog.onclick = function () { state.log = []; if (ui.logBox) ui.logBox.textContent = ''; };
     foot.appendChild(ui.btnLog);
+    // 面板只显示最后 6 行，真机出问题时需要完整日志 → 一键复制发出来
+    ui.btnCopyLog = el('button', BTN2_CSS, '复制日志');
+    ui.btnCopyLog.onclick = function () {
+      var txt = state.log.map(function (l) { return l.t; }).join('\n');
+      if (!txt) { setStatus('日志还是空的', '#ffcc66'); return; }
+      copy(txt, '日志（' + state.log.length + ' 行）');
+    };
+    foot.appendChild(ui.btnCopyLog);
     ui.btnResetPos = el('button', BTN2_CSS, '重置面板位置');
     ui.btnResetPos.onclick = resetPos;
     foot.appendChild(ui.btnResetPos);
@@ -1195,6 +1214,9 @@
     canScan: canScan,
     switchMode: switchMode,
     startScan: startScan,
+    // 给 mdz_island.js（跨岛同步协调器）用：把进度打到面板状态行与日志里
+    log: log,
+    setStatus: setStatus,
     _ui: ui
   };
 })();

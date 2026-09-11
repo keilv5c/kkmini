@@ -11,6 +11,7 @@ const suites = [
   ['mdz_p2p（真实 DataChannel 端到端）', 'mdz_rtc.test.js'],
   ['mdz_handshake（握手状态机：重复回码/陈旧回码/文本模式完整 SDP）', 'mdz_handshake.test.js'],
   ['mdz_fix_audit（真机故障修复点审计：闩锁/1080p/变焦/权限/投票门槛）', 'mdz_fix_audit.test.js'],
+  ['mdz_island（跨岛/换图重同步：指纹去抖、广播、请求重推、被拉回、失败上限）', 'mdz_island.test.js'],
   ['mdz_ui（两个 jsdom 实例走完整 UI 流程）', 'mdz_ui.test.js'],
   ['mdz_selftest（自测页本身：点按钮读页面 PASS/FAIL）', 'mdz_selftest.test.js'],
   ['mdz_page（按 index.html 真实脚本顺序做页面集成检查）', 'mdz_page.test.js'],
