@@ -26,7 +26,7 @@
   var BUILD = 'mdz-island-2';
   var CFG = {
     mode: 'reconnect',       // 'reconnect' = 跨岛即断开并提示重连；'off' = 只诊断、不动连接
-    intervalMs: 2500,        // 指纹采样间隔
+    intervalMs: 6000,        // 指纹采样间隔（MDZ.fingerprint() 要遍历世界，降低频率可省电降温）
     stableNeeded: 2,         // 连续多少次采样相同才算"稳定"（换图过程中会跳变）
     keepaliveMs: 15000,      // 房主即使没变化也定期广播（后加入的客机需要基准）
     mismatchConfirm: 2,      // 客机连续几次"稳定但不一致"才判定跨岛（防误判）
@@ -59,6 +59,7 @@
     mismatchN: 0,
     aborted: false,          // 已经判定跨岛并断开，等下一次联机
     aborts: 0,
+    costLogged: false,
     timer: null, errs: 0, lastErr: null
   };
 
@@ -93,7 +94,15 @@
   function readFp() {
     try {
       if (!window.MDZ || typeof window.MDZ.fingerprint !== 'function') return null;
+      var hasPerf = (typeof performance !== 'undefined' && performance && typeof performance.now === 'function');
+      var t0 = hasPerf ? performance.now() : Date.now();
       var f = window.MDZ.fingerprint();
+      var cost = (hasPerf ? performance.now() : Date.now()) - t0;
+      // 只在它真的贵的时候报一次，方便判断它是不是发热来源
+      if (cost > 50 && !st.costLogged) {
+        st.costLogged = true;
+        log('地图指纹计算耗时 ' + Math.round(cost) + 'ms（每 ' + CFG.intervalMs + 'ms 一次）—— 已把它降频；若仍烫可再调大', '#ffcc66');
+      }
       if (!f || f.error) return null;
       var h = f.mapHash == null ? '' : String(f.mapHash);
       if (!h) return null;

@@ -119,6 +119,15 @@ ok('面板提供「复制日志」（真机排查要把完整日志发出来）'
     /MPPlayers|players\(\)/.test(ply) && /capture\(\)/.test(ply) && /checkpoint\(true, st\.mine\)/.test(ply));
   ok('角色自保层在"载入前"同步执行（不能延后到世界载入之后）',
     /mdz-mp-before-client-snapshot[\s\S]{0,220}?pushMyState\(\)/.test(ply));
+  const storm = fs.readFileSync(path.join(ROOT, 'web', 'mdz_storm.js'), 'utf8');
+  ok('风暴刹车模块已挂进 index.html', /<script src="mdz_storm\.js"><\/script>/.test(html));
+  ok('风暴刹车用 reset + setSender 重新拉取全量 bushes',
+    /reset\(\)/.test(storm) && /setSender/.test(storm) && /mp_bush_request/.test(storm));
+  ok('风暴刹车只在客机侧动手', /st\.role !== 'client'/.test(storm));
+  ok('自己的轮询已降频（发热）',
+    /intervalMs: 6000/.test(fs.readFileSync(path.join(ROOT, 'web', 'mdz_island.js'), 'utf8')) &&
+    /intervalMs: 6000/.test(diag) &&
+    /intervalMs: 4000/.test(hit));
   ok('命中兼容层含 29 种弹种白名单判断', /WHITELIST/.test(hit) && /t192/.test(hit) && /t881/.test(hit));
   ok('命中兼容层会校正命中点到房主权威坐标', /repairHitCoords/.test(hit) && /msg\.x = p\.x/.test(hit));
   ok('命中兼容层会在房主侧补刷新客机位置（绕开 3 秒过期全拒）',

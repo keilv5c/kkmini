@@ -17,7 +17,7 @@
 
   var BUILD = 'mdz-diag-1';
   var CFG = {
-    intervalMs: 3000,
+    intervalMs: 6000,          // 降低轮询频率（手机发热；stats() 会遍历实体）
     debug: true,
     autoStart: true,
     maxTraces: 300,

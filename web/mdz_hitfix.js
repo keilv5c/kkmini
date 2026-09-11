@@ -32,7 +32,7 @@
 
   var BUILD = 'mdz-hitfix-2';
   var CFG = {
-    intervalMs: 2000,
+    intervalMs: 4000,          // 降低轮询频率（手机发热）
     repairHitCoords: true,     // 命中点校正到房主权威坐标
     refreshHostStalePos: true, // 房主侧位置过期时刷新一次
     // ★ 关键：把客机切到"房主裁决伤害"模式（MPEntities.setLocalDamage(false)）。
@@ -96,19 +96,24 @@
     return null;
   }
 
-  function counters() {
-    var z = { applied: 0, rejected: 0, sent: 0 };
+  /** MPEntities.stats() 会序列化全部实体 id + 计数，比较贵：每条命中只取一次 */
+  function statsOnce() {
     try {
-      var s = window.MPEntities && window.MPEntities.stats && window.MPEntities.stats();
-      var c = s && s.counters;
-      if (c) {
-        z.applied = Number(c.hitsApplied) || 0;
-        z.rejected = Number(c.hitsRejected) || 0;
-        z.sent = Number(c.hitsSent) || 0;
-      }
-    } catch (e) { /* 忽略 */ }
+      return (window.MPEntities && typeof window.MPEntities.stats === 'function')
+        ? window.MPEntities.stats() : null;
+    } catch (e) { return null; }
+  }
+  function countersFrom(s) {
+    var z = { applied: 0, rejected: 0, sent: 0 };
+    var c = s && s.counters;
+    if (c) {
+      z.applied = Number(c.hitsApplied) || 0;
+      z.rejected = Number(c.hitsRejected) || 0;
+      z.sent = Number(c.hitsSent) || 0;
+    }
     return z;
   }
+  function counters() { return countersFrom(statsOnce()); }
 
   function noteEntity(e) {
     if (!e || !e.id) return;
@@ -163,7 +168,8 @@
   /** 房主侧：这条命中被结算了还是被拒了？（对照统计计数） */
   function onHostHit(msg) {
     st.hits++;
-    var c = counters();
+    var snap = statsOnce();                       // 只取一次（省 CPU）
+    var c = countersFrom(snap);
     var dA = c.applied - st.lastC.applied;
     var dR = c.rejected - st.lastC.rejected;
     var first = !st.lastC.initialized;
@@ -180,11 +186,7 @@
 
     // ⑥ 客机位置过期会让**所有**命中被拒 —— 用我们观察到的最近位置补刷新一次
     if (CFG.refreshHostStalePos) {
-      var rp = null;
-      try {
-        var s = window.MPEntities && window.MPEntities.stats && window.MPEntities.stats();
-        rp = s && s.remotePlayer;
-      } catch (e) { /* 忽略 */ }
+      var rp = snap && snap.remotePlayer;
       var age = rp ? (Date.now() - Number(rp.receivedAt || 0)) : Infinity;
       if (age > CFG.staleMs && st.remotePos && (Date.now() - st.remotePos.at) < 1500) {
         try {
