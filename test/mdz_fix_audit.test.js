@@ -113,6 +113,12 @@ ok('面板提供「复制日志」（真机排查要把完整日志发出来）'
   const hit = fs.readFileSync(path.join(ROOT, 'web', 'mdz_hitfix.js'), 'utf8');
   ok('命中兼容层会把客机切到「房主裁决伤害」模式（否则命中不上报）',
     /hostArbitratedDamage/.test(hit) && /setLocalDamage\(false\)/.test(hit));
+  const ply = fs.readFileSync(path.join(ROOT, 'web', 'mdz_players.js'), 'utf8');
+  ok('客机角色自保层已挂进 index.html', /<script src="mdz_players\.js"><\/script>/.test(html));
+  ok('角色自保层用 capture + checkpoint 把自己的角色交给房主存档',
+    /MPPlayers|players\(\)/.test(ply) && /capture\(\)/.test(ply) && /checkpoint\(true, st\.mine\)/.test(ply));
+  ok('角色自保层在"载入前"同步执行（不能延后到世界载入之后）',
+    /mdz-mp-before-client-snapshot[\s\S]{0,220}?pushMyState\(\)/.test(ply));
   ok('命中兼容层含 29 种弹种白名单判断', /WHITELIST/.test(hit) && /t192/.test(hit) && /t881/.test(hit));
   ok('命中兼容层会校正命中点到房主权威坐标', /repairHitCoords/.test(hit) && /msg\.x = p\.x/.test(hit));
   ok('命中兼容层会在房主侧补刷新客机位置（绕开 3 秒过期全拒）',
